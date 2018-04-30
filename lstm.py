@@ -1,6 +1,8 @@
 import tensorflow as tf
+import os
 from tensorflow.contrib import rnn
-from sklearn.utils import shuffle
+# from mlxtend.preprocessing import shuffle_arrays_unison
+# from sklearn.utils import resample
 
 # To stack more LSTM layers, just add more sizes to this list
 LAYERS = [512]
@@ -28,8 +30,54 @@ class Dataset:
 		self.X_year = X_year
 		self.Y_pred = Y_pred
 
+	@staticmethod
+	def load(self, path):
+
+		X_word_path = os.path.join(path, "X_word")
+		X_word_path = os.path.join(path, "X_year")
+		X_word_path = os.path.join(path, "Y")
+
+		X_word_arrays = []
+		X_year_arrays = []
+		Y_arrays = []
+
+		for dirpath, dirnames, filenames in os.walk(X_word_path):
+			for filename in filenames:
+				print("WORD" + filename)
+				X_word_array = np.load(os.path.join(X_word_path, filename))
+				X_word_arrays.append(X_word_array)
+
+		for dirpath, dirnames, filenames in os.walk(X_year_path):
+			for filename in filenames:
+				print("YEAR" + filename)
+				X_year_array = np.load(os.path.join(X_year_path, filename))
+				X_year_arrays.append(X_year_array)
+
+		for dirpath, dirnames, filenames in os.walk(Y_path):
+			for filename in filenames:
+				print("PATH" + filename)
+				Y_array = np.load(os.path.join(Y_path, filename))
+				Y_arrays.append(Y_array)
+
+		return Dataset(
+			np.concatenate(X_word_arrays, axis=0),
+			np.concatenate(X_year_arrays, axis=0),
+			np.concatenate(Y_arrays, axis=0),
+		)
+
 	def shuffle(self):
-		self.X_word, self.X_year, self.Y_pred = shuffle(self.X_word, self.X_year, self.Y_pred)
+		permutation = np.random.permutation(self.X_word.shape[0])
+		self.X_word = self.X_word[permutation]
+		self.X_year = self.X_year[permutation]
+		self.Y = self.Y[permutation]
+
+	def iter_batches(self):
+		for i in xrange(0, len(self.X_word) - BATCH_SIZE, BATCH_SIZE):
+			yield (
+				self.X_word[i:i+BATCH_SIZE, :, :],
+				self.X_year[i:i+BATCH_SIZE, :],
+				self.Y_pred[:,i+BATCH_SIZE, :],
+			)
 
 
 class TemporalLanguageModel:
@@ -63,19 +111,31 @@ class TemporalLanguageModel:
 
 		self.train_step = tf.train.AdamOptimizer(LR).minimize(self.loss)
 
-	def train(self, train_data, dev_data):
-		# for i in xrange(N_EPOCHS):
-		# 	train_data.shuffle()
-		# 	for j in xrange(0, len(train_data) - BATCH_SIZE, BATCH_SIZE):
-		# 		batch
-		# TODO
+	def train(self, session, train_data, dev_data):
+		for i in xrange(N_EPOCHS):
+			train_data.shuffle()
+			loss = 0.
+			for batch_X_word, batch_X_year, batch_Y_pred in train_data.iter_batches():
+				d_loss = session.run([self.loss, self.train_step], feed_dict={
+					self.X_word: batch_X_word,
+					self.X_year: batch_X_year,
+					self.Y_pred: batch_Y_pred,
+				})
+				loss += d_loss
+			print("Train loss:", loss)
 
-if __name__ == "__main__":
+def main():
 
-	#  TODO #
-	# build train, test datasets
-	# /TODO #
+	# train_data = Dataset.load(TRAIN_PATH)
+	# dev_data = Dataset.load(DEV_PATH)
+	# test_data = Dataset.load(TEST_PATH)
+
+	session = tf.Session()
 
 	model = TemporalLanguageModel()
 	model.add_graph()
-	# model.train(train_data, dev_data)
+	# model.train(session, train_data, dev_data)
+
+
+if __name__ == "__main__":
+	main()
