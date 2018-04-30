@@ -1,20 +1,21 @@
+from __future__ import division
+
 import tensorflow as tf
-import os
+import numpy as np
+import os, sys
 from tensorflow.contrib import rnn
-# from mlxtend.preprocessing import shuffle_arrays_unison
-# from sklearn.utils import resample
 
 # To stack more LSTM layers, just add more sizes to this list
 LAYERS = [512]
 
 # Maximum length of sentences
-MAX_LEN = 100
+MAX_LEN = 50
 
 # Size of input embedding vectors
 EMBED_DIM = 300
 
-# Number of words in vocabulary
-VOCAB_DIM = 1024
+# Number of parts of speech
+N_POS = 423
 
 # Hyperparameters
 LR = 0.01
@@ -67,17 +68,20 @@ class Dataset:
 
 	def shuffle(self):
 		permutation = np.random.permutation(self.X_word.shape[0])
-		self.X_word = self.X_word[permutation]
-		self.X_year = self.X_year[permutation]
-		self.Y = self.Y[permutation]
+		self.X_word = self.X_word[permutation, :, :]
+		self.X_year = self.X_year[permutation, :]
+		self.Y_pred = self.Y_pred[permutation, :]
 
 	def iter_batches(self):
 		for i in xrange(0, len(self.X_word) - BATCH_SIZE, BATCH_SIZE):
 			yield (
 				self.X_word[i:i+BATCH_SIZE, :, :],
 				self.X_year[i:i+BATCH_SIZE, :],
-				self.Y_pred[:,i+BATCH_SIZE, :],
+				self.Y_pred[i:i+BATCH_SIZE, :],
 			)
+
+	def get_n_batches(self):
+		return len(self.X_word) // BATCH_SIZE
 
 
 class TemporalLanguageModel:
@@ -101,8 +105,13 @@ class TemporalLanguageModel:
 
 		self.Y = tf.contrib.layers.fully_connected(
 			inputs=H,
-			num_outputs=VOCAB_DIM,
+			num_outputs=N_POS,
 		)
+
+		self.acc = tf.reduce_mean(tf.nn.top_k(self.Y_pred, k=1))
+
+		log_p = tf.gather(tf.log(self.Y), self.Y_pred)
+		self.log_perp = -tf.reduce_mean(log_p)
 
 		self.loss = tf.losses.sparse_softmax_cross_entropy(
 			labels=self.Y_pred,
@@ -112,17 +121,25 @@ class TemporalLanguageModel:
 		self.train_step = tf.train.AdamOptimizer(LR).minimize(self.loss)
 
 	def train(self, session, train_data, dev_data):
+		session.run(tf.global_variables_initializer())
+		n_batches = train_data.get_n_batches()
 		for i in xrange(N_EPOCHS):
 			train_data.shuffle()
 			loss = 0.
 			for batch_X_word, batch_X_year, batch_Y_pred in train_data.iter_batches():
-				d_loss = session.run([self.loss, self.train_step], feed_dict={
+				d_loss, _ = session.run([self.loss, self.train_step], feed_dict={
 					self.X_word: batch_X_word,
 					self.X_year: batch_X_year,
 					self.Y_pred: batch_Y_pred,
 				})
 				loss += d_loss
-			print("Train loss:", loss)
+			print "#{} TRAIN : loss={:.3f}".format(i, loss / n_batches)
+			dev_loss, dev_acc, dev_log_perp = session.run([self.loss, self.acc, self.log_perp], feed_dict={
+				self.X_word: dev_data.X_word,
+				self.X_year: dev_data.X_year,
+				self.Y_pred: dev_data.Y_pred,
+			})
+			print "#{} DEV : loss={:.3f} : acc={:.3f} : log_perp={:.3f}".format(i, dev_loss, dev_acc, dev_log_perp)
 
 def main():
 
@@ -130,11 +147,23 @@ def main():
 	# dev_data = Dataset.load(DEV_PATH)
 	# test_data = Dataset.load(TEST_PATH)
 
+	train_data = Dataset(
+		np.random.uniform(size=[100, MAX_LEN, EMBED_DIM]),
+		np.random.uniform(size=[100, MAX_LEN]),
+		np.random.uniform(size=[100, MAX_LEN], high=100),
+	)
+
+	dev_data = Dataset(
+		np.random.uniform(size=[100, MAX_LEN, EMBED_DIM]),
+		np.random.uniform(size=[100, MAX_LEN]),
+		np.random.uniform(size=[100, MAX_LEN], high=100),
+	)
+
 	session = tf.Session()
 
 	model = TemporalLanguageModel()
 	model.add_graph()
-	# model.train(session, train_data, dev_data)
+	model.train(session, train_data, dev_data)
 
 
 if __name__ == "__main__":
