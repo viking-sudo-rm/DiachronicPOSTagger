@@ -3,7 +3,6 @@ import tensorflow as tf
 import fasttext, os
 sent_length = 50
 embed_size = 300 #given from fasttext website
-num_pos = 10 #TODO fix
 import pickle as pk
 from gensim.models import KeyedVectors 
 import dircache
