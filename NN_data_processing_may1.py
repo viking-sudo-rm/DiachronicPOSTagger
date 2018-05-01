@@ -32,39 +32,37 @@ def read_lex():
 
 	num_words = len(lines)
 
+	poss = []
+	words = {}
+	words_inv = [None]
+
 	for line in lines:
 		word_list = line.split()
 		#print(word_list)
-		if len(word_list)==5 and word_list[0]!="@":
-			word, lemma, pos = line.split()[:3]
+		if len(word_list)==5 and word_list[1]!="@":
+			wID,_,word,_,pos = word_list[:5]
+			#print wID
 			pos = format_POS(pos)
-			if pos in updated_pos_tags:
-				word = word.lower()
-				X_word[counter,:] = embeddings[word] if word in embeddings else np.ones(shape=(embed_size,))
-				Y[counter] = le.transform([pos])[0]
-				if lemma == '.' or counter==sent_length-1:
-					#print("BET")
-					#print(counter)
-					sent_X_word.append(X_word)
-					X_word = np.zeros(shape=(sent_length, embed_size))
-					sent_Y.append(Y)
-					Y = np.zeros(shape=(sent_length, ))
-					counter = 0
-				else:
-					#print(counter)
-					counter += 1
+			words[word] = int(wID)
+			words_inv.append(word)
+			poss.append(pos)
 
-
-	print("ENCODE POS")
-	pos_tags = pk.load(open(TAGS_PATH))
-	updated_pos_tags = [format_POS(tag) for tag in pos_tags]
 	le = LabelEncoder()
-	le.fit(updated_pos_tags)
-	print("ENCODE POS DONE")
-	return le, updated_pos_tags
+	le.fit(poss)
+
+	return le, poss, words, words_inv
 
 
-def read_in(file_name, embeddings, le, updated_pos_tags):
+#	print("ENCODE POS")
+#	pos_tags = pk.load(open(TAGS_PATH))
+#	updated_pos_tags = [format_POS(tag) for tag in pos_tags]
+#	le = LabelEncoder()
+#	le.fit(updated_pos_tags)
+#
+#	return le, updated_pos_tags
+
+
+def read_in(file_name, embeddings, le, updated_pos_tags, words, words_inv):
 
 	print("READ IN  START")
 
@@ -81,8 +79,8 @@ def read_in(file_name, embeddings, le, updated_pos_tags):
 	sent_X_word = []
 	sent_Y = []
 
-	X_word = np.zeros(shape=(sent_length, embed_size))
-	Y = np.zeros(shape=(sent_length, ))
+	X_word = np.zeros(shape=(sent_length,), dtype=np.int32)
+	Y = np.zeros(shape=(sent_length, ), dtype=np.int32)
 	counter = 0
 	print("READ IN  LINES")
 	print(filename)
@@ -90,19 +88,22 @@ def read_in(file_name, embeddings, le, updated_pos_tags):
 		word_list = line.split()
 		#print(word_list)
 		if len(word_list)==3 and word_list[0]!="@" and counter<sent_length:
-			word, lemma, pos = line.split()[:3]
+			word, lemma, pos = word_list[:3]
 			pos = format_POS(pos)
 			if pos in updated_pos_tags:
 				word = word.lower()
-				X_word[counter,:] = embeddings[word] if word in embeddings else np.ones(shape=(embed_size,))
+				if word in words_inv:
+					X_word[counter] = words[word]
+				else:
+					X_word[counter] = 0
 				Y[counter] = le.transform([pos])[0]
 				if lemma == '.' or counter==sent_length-1:
 					#print("BET")
 					#print(counter)
 					sent_X_word.append(X_word)
-					X_word = np.zeros(shape=(sent_length, embed_size))
+					X_word = np.zeros(shape=(sent_length,), dtype=np.int32)
 					sent_Y.append(Y)
-					Y = np.zeros(shape=(sent_length, ))
+					Y = np.zeros(shape=(sent_length, ), dtype=np.int32)
 					counter = 0
 				else:
 					#print(counter)
@@ -121,42 +122,50 @@ def read_in(file_name, embeddings, le, updated_pos_tags):
 
 format_POS = lambda pos: pos.split("_")[0]
 
+def embedding_to_word(words_inv, embeddings):
+	f = lambda word: embeddings[word] if word in embeddings else np.ones([300])
+	return np.array(map(f, words_inv))
+
 #pos.pkl
 #depth - depth used for all tags
-def encode_POS():
-	print("ENCODE POS")
-	pos_tags = pk.load(open(TAGS_PATH))
-	updated_pos_tags = [format_POS(tag) for tag in pos_tags]
-	le = LabelEncoder()
-	le.fit(updated_pos_tags)
-	print("ENCODE POS DONE")
-	return le, updated_pos_tags
+#def encode_POS():
+#	print("ENCODE POS")
+#	pos_tags = pk.load(open(TAGS_PATH))
+#	updated_pos_tags = [format_POS(tag) for tag in pos_tags]
+#	le = LabelEncoder()
+#	le.fit(updated_pos_tags)
+#	print("ENCODE POS DONE")
+#	return le, updated_pos_tags
 
 if __name__ == '__main__':
 
 	embeddings = load_embeddings()
-	le, updated_pos_tags = encode_POS()
+	le, updated_pos_tags, words, words_inv = read_lex()
+	embed_mat = embedding_to_word(words_inv, embeddings)
 
 	X_word_arrays, X_year_arrays, Y_arrays = [], [], []
 
 	num = 0
-	for dirpath, dirnames, filenames in os.walk(os.path.join(CORPUS_PATH, "wlp_2000s_iey")):
-		filenames_chosen = np.random.choice(dircache.listdir(os.path.join(CORPUS_PATH, "wlp_2000s_iey")), 350)
-		print filenames_chosen
-		print len(filenames_chosen)
-		for filename in filenames_chosen:
-			print(num)
-			num += 1
-			X_word_array, X_year_array, Y_array = read_in(os.path.join(dirpath, filename), embeddings, le, updated_pos_tags)
-			X_word_arrays.append(X_word_array)
-			X_year_arrays.append(X_year_array)
-			Y_arrays.append(Y_array)
+	for dirpath, dirnames, filenames in os.walk(CORPUS_PATH):
+		print dirnames
+		for file in dirnames:
+			file_path = os.path.join(CORPUS_PATH, file)
+			filenames_chosen = np.random.choice(dircache.listdir(file_path), 350)
+			print filenames_chosen
+			print len(filenames_chosen)
+			for filename in filenames_chosen:
+				print(num)
+				num += 1
+				X_word_array, X_year_array, Y_array = read_in(os.path.join(file_path, filename), embeddings, le, updated_pos_tags, words, words_inv)
+				X_word_arrays.append(X_word_array)
+				X_year_arrays.append(X_year_array)
+				Y_arrays.append(Y_array)
 
 	X_word_array = np.concatenate(X_word_arrays, axis=0)
 	X_year_array = np.concatenate(X_year_arrays, axis=0)
 	Y_array = np.concatenate(Y_arrays, axis=0)
 
-	with open(os.path.join(SAVE_PATH, "X_word_array_2000s.npz"), "wb") as fh:
+	with open(os.path.join(SAVE_PATH, "X_word_array_5_1.npz"), "wb") as fh:
 		np.save(fh, X_word_array)
 
 	#with open(SAVE_PATH) as fh:
@@ -177,12 +186,14 @@ if __name__ == '__main__':
 #    with open(os.path.join(SAVE_PATH, "Y_array_1810s.npz"), "wb") as fh:
 #    	np.save(fh, Y_array)
 
-	with open(os.path.join(SAVE_PATH, "X_year_array_2000s.npz"), "wb") as fh:
+	with open(os.path.join(SAVE_PATH, "X_year_array_5_1.npz"), "wb") as fh:
 		np.save(fh, X_year_array)
 
-	with open(os.path.join(SAVE_PATH, "Y_array_2000s.npz"), "wb") as fh:
+	with open(os.path.join(SAVE_PATH, "Y_array_5_1.npz"), "wb") as fh:
 		np.save(fh, Y_array)
 	
+	with open(os.path.join(SAVE_PATH, "EMBED_MAT.npz"), "wb") as fh:
+		np.save(fh, embed_mat)
 	#with open(os.path.join(SAVE_PATH, "X_test.npz"), "wb") as fh:
     #	np.save(fh, X)
 

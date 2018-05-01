@@ -19,7 +19,7 @@ EMBED_DIM = 300
 N_POS = 423
 
 # Hyperparameters
-LR = 0.05
+LR = 0.001
 N_EPOCHS = 30
 BATCH_SIZE = 100
 
@@ -150,7 +150,10 @@ class TemporalLanguageModel:
         )
 
         #itf.argmax(self.Y, axis=2)
-        equal = tf.argmax(self.Y, axis=2) == self.Y_label
+        #2 vectors pointwise equal !
+        #argmax by position is right thing if each of argmaxes are equal to thing
+       # equal = [tf.argmax(self.Y[i], axis=2) == self.Y_label[i] for i in range(0, self.Y.shape[0])]
+        equal = tf.equal(tf.cast(tf.argmax(self.Y, axis=2), tf.int32), tf.cast(self.Y_label, tf.int32))
         self.acc = tf.reduce_mean(tf.cast(equal, tf.float32))
 
         log_p = tf.gather(tf.log(self.Y), self.Y_label)
@@ -210,6 +213,7 @@ class TemporalLanguageModel:
             #     self.X_year: dev_data.X_year,
             #     self.Y_label: dev_data.Y_label,
             # })
+            #over sequence not part of speech!!
 
             dev_acc = session.run(self.acc, feed_dict={
                 self.X_word: dev_data.X_word,
