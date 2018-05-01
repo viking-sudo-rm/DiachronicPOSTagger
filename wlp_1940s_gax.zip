@@ -1,0 +1,209 @@
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<!-- =========================================================================== -->
+
+<head>
+<title>Yale | CAS-Central Authentication Service</title>
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="author" content="Information Technology Services, Yale University" />
+<meta name="Description" content="Central Authentication Service - CAS" />
+
+<meta name="viewport" content="width=320" />
+
+<link rel="stylesheet" href="cas-resources/styles/cas-all.css" type="text/css" media="screen" />
+<link rel="stylesheet" href="cas-resources/styles/cas-mobile.css" media="handheld, only screen and (max-device-width: 480px)" type="text/css" />
+
+
+<script type="text/javascript" language="javascript">
+// <![CDATA[
+function searchFocus(){document.getElementById('username').focus();}
+// ]]>
+</script>
+
+<script type="text/javascript" src="cas-resources/js/jquery-1.3.2.js"></script>
+<script type="text/javascript" src="cas-resources/js/capslock.jquery.js"></script>
+<script type="text/javascript">
+// <![CDATA[
+$(document).ready(function() {
+// Set up Caps Lock Plug-in
+var options = {
+    caps_lock_on: function() { $(".caps-status").addClass("caps-on"); },
+    caps_lock_off: function() { $(".caps-status").removeClass("caps-on"); }
+    };
+    $().capslock(options);
+});
+// ]]>
+</script>
+<style type="text/css">
+/* <![CDATA[ */
+
+.formInput {
+float: left;
+}
+
+.caps-status {
+float: left;
+width: 24px;
+height: 24px;
+margin: 2px 0 0 5px;
+background: none;
+}
+
+.caps-on {
+background: url(cas-resources/styles/graphics/caps-lock-on.gif) no-repeat;
+}
+
+
+
+/* ]]> */
+</style>
+</head>
+
+<body onload="searchFocus();">
+
+<div id="pagebox">
+<div id="headerBox">
+
+<img id="titleGraphic" src="cas-resources/styles/graphics/cas-title-banner.gif" alt="Yale Central Authentication Service (CAS)" width="432" height="35" hspace="" vspace="" border="0" />
+</div><!-- close headerBox div -->
+
+
+
+<div id="content">
+
+<div id="content-left">
+
+<!-- === FORM LAYOUT TABLE ==================================================== -->
+<form id="login_form" class="fm-v clearfix" action="/cas/login;jsessionid=IzQ0l+yMPPXYwMKefGclMyIB?service=http%3a%2f%2fssrs.yale.edu%2fdata%2fSSDA%2fBrigham_Young_University_Corpora%2fCOHA%2fwlp_1940s_gax.zip" method="post">
+
+    
+<table id="form-layout" summary="Form layout" border="0" cellspacing="0" cellpadding="5">   
+<tr>
+    <td align="left" valign="top" width="" >
+    &nbsp;
+    </td>
+    <td align="left" valign="top" width="" >
+    <h1>Login required</h1>
+    <p class="sans">
+
+ 
+  You may establish Yale authentication now in order to access protected
+  services later.
+ 
+ 
+
+    </p>
+    </td>
+</tr>
+
+<tr>
+    <td align="left" valign="top" width="" >
+    <p class="formLabel">NetID:</p>
+    </td>
+    <td align="left" valign="top" width="" >
+    <input id="username" name="username" class="formInput" tabindex="1" type="text" value="" size="20" autocomplete="off"/>
+    <div class="caps-status" title="Caps lock status"></div>
+    </td>
+</tr>
+
+<tr>
+    <td align="left" valign="top" width="" >
+    <p class="formLabel">Password:</p>
+    </td>
+    <td align="left" valign="top" width="" >
+    <input id="password" name="password" class="formInput" tabindex="2" type="password" value="" size="20" autocomplete="off"/>
+    </td>
+</tr>
+
+<tr><!-- checkbox-->
+    <td align="left" valign="top" width="" >
+    &nbsp;
+    </td>
+    <td valign="top" width="" align="left">
+    <p class="sans"><input name="warn" value="true" type="checkbox" id="cb_warn"></input>
+    <label for="cb_warn">Warn me before logging me in to other sites.</label></p>
+    </td>
+</tr>
+
+<tr>
+    <td align="left" valign="top" width="" >
+    &nbsp;
+    </td>
+    <td align="left" valign="top" width="" >
+		<input type="hidden" name="execution" value="e1s1" />
+	    <input type="hidden" name="_eventId" value="submit" />
+	    <input type="hidden" name="service" value="http://ssrs.yale.edu/data/SSDA/Brigham_Young_University_Corpora/COHA/wlp_1940s_gax.zip" />
+	    <input class="inputButton" type="submit" value="Login" />
+    </td>
+</tr>
+
+<tr class="hideInMobile">
+    <td align="left" valign="top" width="" >
+    &nbsp;
+    </td>
+    <td align="left" valign="top" width="" >
+    <h2>Please note</h2>
+    <p class="sans">
+    Before entering your NetID and password, verify that the URL
+    for this page begins with: <strong>https://secure.its.yale.edu</strong>
+    </p>
+    <p class="sans">
+    To protect your privacy, quit your web browser when you
+    are done accessing services that require authentication.
+    </p>
+    </td>
+</tr>
+</table>
+
+</form>
+<!-- === /FORM LAYOUT TABLE ==================================================== -->
+
+</div><!-- close content-left div -->
+
+
+
+
+
+<div id="content-right">
+<ul class="plain">
+    <li class="disabled">CAS Login</li>
+    <li><a href="logout">CAS Logout</a></li>
+    <li><a href="help.html">Help with CAS</a></li>
+    <li><span class="hideInMobile">
+    <a href="http://www.yale.edu/its/forms/feedback.html" target="_blank">Feedback</a></span></li>
+</ul>
+
+<span class="hideInMobile">
+<ul class="plain-serif">
+    <li>
+    <a href="https://veritas.its.yale.edu/netid/ForgotNetIDPassword.do" target="_blank">Forgot your password?</a></li>
+    <li><a href="https://secure.its.yale.edu/cas/login?&amp;service=https://veritas.its.yale.edu/netid/ChangePassword_Login.do&amp;renew=true" target="_blank">Changing your password</a></li>
+</ul>
+</span>
+
+
+</div><!-- close content-right div -->
+
+<div style="clear:both;"></div>
+
+</div><!-- close content div -->
+</div><!-- close pagebox div -->
+<!-- 
+Server Name: vm-ssoprdapp-01
+Host name: vm-ssoprdapp-01.web.yale.internal
+ 
+ -->
+
+</body>
+</html>

@@ -3,13 +3,9 @@ import tensorflow as tf
 import fasttext, os
 sent_length = 50
 embed_size = 300 #given from fasttext website
-<<<<<<< HEAD
-=======
 num_pos = 10 #TODO fix
->>>>>>> eb5202580427f24b5dcfd42e4c6b9b33bad3a968
 import pickle as pk
 from gensim.models import KeyedVectors 
-import dircache
 
 import sklearn as sk
 
@@ -104,14 +100,8 @@ if __name__ == '__main__':
 
 	X_word_arrays, X_year_arrays, Y_arrays = [], [], []
 
-	num = 0
-	for dirpath, dirnames, filenames in os.walk(os.path.join(CORPUS_PATH, "wlp_2000s_iey")):
-		filenames_chosen = np.random.choice(dircache.listdir(os.path.join(CORPUS_PATH, "wlp_2000s_iey")), 350)
-		print filenames_chosen
-		print len(filenames_chosen)
-		for filename in filenames_chosen:
-			print(num)
-			num += 1
+	for dirpath, dirnames, filenames in os.walk(CORPUS_PATH):
+		for filename in filenames:
 			X_word_array, X_year_array, Y_array = read_in(os.path.join(dirpath, filename), embeddings, le, updated_pos_tags)
 			X_word_arrays.append(X_word_array)
 			X_year_arrays.append(X_year_array)
@@ -121,38 +111,13 @@ if __name__ == '__main__':
 	X_year_array = np.concatenate(X_year_arrays, axis=0)
 	Y_array = np.concatenate(Y_arrays, axis=0)
 
-	with open(os.path.join(SAVE_PATH, "X_word_array_2000s.npz"), "wb") as fh:
+	with open(os.path.join(SAVE_PATH, "X_word_array.npz")) as fh:
 		np.save(fh, X_word_array)
 
-	#with open(SAVE_PATH) as fh:
-#		np.save(os.path.join(fh, "X_word_array_1810s.npz"), X_word_array)
-
-#	with open(SAVE_PATH) as fh:
-#		np.save(os.path.join(fh, "X_year_array_1810s.npz"), X_year_array)
-
-#	with open(SAVE_PATH) as fh:
-#		np.save(os.path.join(fh, "Y_array_1810s.npz"), Y_array)
-
-#	with open(os.path.join(SAVE_PATH, "X_word_array_1810s.npz"), "wb") as fh:
-#    	np.save(fh, X_word_array)
-
-#    with open(os.path.join(SAVE_PATH, "X_year_array_1810s.npz"), "wb") as fh:
-#    	np.save(fh, X_year_array)
-
-#    with open(os.path.join(SAVE_PATH, "Y_array_1810s.npz"), "wb") as fh:
-#    	np.save(fh, Y_array)
-
-	with open(os.path.join(SAVE_PATH, "X_year_array_2000s.npz"), "wb") as fh:
+	with open(os.path.join(SAVE_PATH, "X_year_array.npz")) as fh:
 		np.save(fh, X_year_array)
 
-	with open(os.path.join(SAVE_PATH, "Y_array_2000s.npz"), "wb") as fh:
+	with open(os.path.join(SAVE_PATH, "Y_array.npz")) as fh:
 		np.save(fh, Y_array)
-	
-	#with open(os.path.join(SAVE_PATH, "X_test.npz"), "wb") as fh:
-    #	np.save(fh, X)
 
-#    with open(SAVE_PATH, "wb") as fh:
-#		np.save(os.path.join(fh, "X_test.npz"), X)
-
- #   np.save(open(os.path.join(SAVE_PATH, "X_test.npz")), X)
 
