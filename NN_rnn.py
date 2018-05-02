@@ -18,6 +18,15 @@ EMBED_DIM = 300
 # Number of parts of speech
 N_POS = 423
 
+EMBED_PATH = "FILL IN" # Set None to disable 
+TRAIN_PATH = "/home/accts/gfs22/LING_380/Data/10000/Train"
+DEV_PATH = "/home/accts/gfs22/LING_380/Data/10000/Dev"
+TEST_PATH = "/home/accts/gfs22/LING_380/Data/10000/Test"
+
+# Year embedding params
+START_YEAR = 1800
+END_YEAR = 2020
+
 # Hyperparameters
 LR = 0.001
 N_EPOCHS = 30
@@ -126,14 +135,26 @@ class Dataset:
 
 class TemporalLanguageModel:
 
-    def add_graph(self):
+    def add_graph(self, embed_data):
 
-        self.X_word = tf.placeholder(tf.float32, [None, MAX_LEN, EMBED_DIM])
-        self.X_year = tf.placeholder(tf.float32, [None])
+        self.X_word = tf.placeholder(tf.int32, [None, MAX_LEN, EMBED_DIM])
+        self.X_year = tf.placeholder(tf.int32, [None])
         self.Y_label = tf.placeholder(tf.int32, [None, MAX_LEN])
 
+        # Embed the inputs
+        W_embed = tf.Variable(embed_data)
+        X_word = tf.nn.embedding_lookup(W_embed, self.X_word)
+
+        # Can do the same thing for years
+
         X_year = tf.expand_dims(tf.tile(tf.expand_dims(self.X_year, axis=1), [1, MAX_LEN]), axis=2)
-        X = tf.concat([self.X_word, X_year], axis=2)
+        X = tf.concat([X_word, X_year], axis=2)
+
+        # if embed_data is None:
+        #     E_year = X_year
+        # else:
+        #     E_year_W = tf.Variable(embed_data)
+        #     tf.nn.embedding_lookup
 
         rnn_layers = [rnn.LSTMCell(size) for size in LAYERS]
         multi_rnn_cell = rnn.MultiRNNCell(rnn_layers)
@@ -333,13 +354,15 @@ def main():
     #     np.random.uniform(size=[100, MAX_LEN], high=100),
     # )
 
-    TRAIN_PATH = "/home/accts/gfs22/LING_380/Data/10000/Train"
-    DEV_PATH = "/home/accts/gfs22/LING_380/Data/10000/Dev"
-    TEST_PATH = "/home/accts/gfs22/LING_380/Data/10000/Test"
-
     train_data = Dataset.load(TRAIN_PATH)
     dev_data = Dataset.load(DEV_PATH)
     test_data = Dataset.load(TEST_PATH)
+
+    if EMBED_PATH is not None:
+        with open(EMBED_PATH) as fh:
+            embed_data = np.load(fh)
+    else:
+        embed_data = None
 
     print("Data Loaded!")
 
@@ -349,7 +372,7 @@ def main():
     model = TemporalLanguageModel()
 
     print("Adding Graph")
-    model.add_graph()
+    model.add_graph(embed_data=embed_data)
 
     print("Adding summaries")
     model.add_summaries()
