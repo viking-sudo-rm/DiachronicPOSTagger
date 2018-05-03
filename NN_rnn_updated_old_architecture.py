@@ -23,6 +23,8 @@ LR = 0.001
 N_EPOCHS = 30
 BATCH_SIZE = 100
 
+MAX_THRESHOLD = 200000
+
 def log(content, input_data):
     print input_data 
     content.write(input_data)
@@ -73,17 +75,11 @@ class Dataset:
         )
 
     @staticmethod
-    def load(path, split):
+    def load(path):
 
-        if split == 0:
-            X_word_path = os.path.join(path, "X_word_array_5_1.npz")
-            X_year_path = os.path.join(path, "X_year_array_5_1.npz")
-            Y_path = os.path.join(path, "Y_array_5_1.npz")
-
-        else: 
-            X_word_path = os.path.join(path, "X_word_array.npz")
-            X_year_path = os.path.join(path, "X_year_array.npz")
-            Y_path = os.path.join(path, "Y_array.npz")
+        X_word_path = os.path.join(path, "X_word_arrays.npz")
+        X_year_path = os.path.join(path, "X_year_arrays.npz")
+        Y_path = os.path.join(path, "Y_arrays.npz")
 
         X_word_array = np.load(X_word_path)
         X_year_array = np.load(X_year_path)
@@ -97,7 +93,7 @@ class Dataset:
 
     def shuffle(self):
         permutation = np.random.permutation(self.X_word.shape[0])
-        self.X_word = self.X_word[permutation, :]
+        self.X_word = self.X_word[permutation, :, :]
         self.X_year = self.X_year[permutation, ]
         self.Y_label = self.Y_label[permutation, :]
 
@@ -105,7 +101,7 @@ class Dataset:
         for i in xrange(0, len(self.X_word) - BATCH_SIZE, BATCH_SIZE):
             yield (
                 i, 
-                self.X_word[i:i+BATCH_SIZE, :],
+                self.X_word[i:i+BATCH_SIZE, :, :],
                 self.X_year[i:i+BATCH_SIZE, ],
                 self.Y_label[i:i+BATCH_SIZE, :],
             )
@@ -115,9 +111,9 @@ class Dataset:
 
     def save(self, savepath):
 
-        X_word_name = "X_word_array.npz"
-        X_year_name = "X_year_array.npz"
-        Y_name = "Y_array.npz"
+        X_word_name = "X_word_arrays.npz"
+        X_year_name = "X_year_arrays.npz"
+        Y_name = "Y_arrays.npz"
 
         with open(os.path.join(savepath, X_word_name), "wb") as fh:
             np.save(fh, self.X_word)
@@ -134,7 +130,7 @@ class TemporalLanguageModel:
 
     def add_graph(self):
 
-        self.X_word = tf.placeholder(tf.float32, [None, MAX_LEN])
+        self.X_word = tf.placeholder(tf.float32, [None, MAX_LEN, EMBED_DIM])
         self.X_year = tf.placeholder(tf.float32, [None])
         self.Y_label = tf.placeholder(tf.int32, [None, MAX_LEN])
 
@@ -159,7 +155,7 @@ class TemporalLanguageModel:
         #2 vectors pointwise equal !
         #argmax by position is right thing if each of argmaxes are equal to thing
        # equal = [tf.argmax(self.Y[i], axis=2) == self.Y_label[i] for i in range(0, self.Y.shape[0])]
-        equal = tf.argmax(self.Y, axis=2) == self.Y_label 
+        equal = tf.equal(tf.cast(tf.argmax(self.Y, axis=2), tf.int32), tf.cast(self.Y_label, tf.int32))
         self.acc = tf.reduce_mean(tf.cast(equal, tf.float32))
 
         log_p = tf.gather(tf.log(self.Y), self.Y_label)
@@ -185,10 +181,7 @@ class TemporalLanguageModel:
         dev_loss = float("inf")
         #no_improve = 0
 
-        train_data = dev_data
-        dev_data = test_data
-
-        data_file = "/home/accts/gfs22/LING_380/Data/Output/may_1_run.txt"
+        data_file = "/home/accts/gfs22/LING_380/Data/Output/old_arch.txt"
 
         content=open(data_file, "a")
 
@@ -240,7 +233,7 @@ class TemporalLanguageModel:
         content.close()
         del train_data
         del dev_data
-        saver.save(session, "/home/accts/gfs22/LING_380/Data/Output/model_5_1")
+        saver.save(session, "/home/accts/gfs22/LING_380/Data/Output/old_arch")
 
     def test(self, test_data):
         sess = tf.Session()
@@ -282,55 +275,51 @@ class TemporalLanguageModel:
     
 def main():
 
-
-    data_path = "/home/accts/gfs22/LING_380/Data/Extracted/"
+    # TRAIN_PATH = "/home/accts/gfs22/LING_380/Data/Extracted"
     # DEV_PATH = "/home/accts/gfs22/LING_380/Data/Extracted"
-    data = Dataset.load(data_path, 0)
-    num_sent = data.X_word.shape[0]
-    train_end= int(num_sent*0.7)
-    dev_end = int(num_sent*0.85)
-    data.shuffle()
+    # data = Dataset.load_oldls(TRAIN_PATH)
 
-    train_X_word = data.X_word[:train_end, :]
-    train_X_year = data.X_year[:train_end]
-    train_Y = data.Y_label[:train_end, :]
+    # data.shuffle()
 
-    dev_X_word = data.X_word[train_end:dev_end, :]
-    dev_X_year = data.X_year[train_end:dev_end]
-    dev_Y = data.Y_label[train_end:dev_end, :]
+    # train_X_word = data.X_word[:140000, :32, :]
+    # train_X_year = data.X_year[:140000]
+    # train_Y = data.Y_label[:140000, :32]
 
-    test_X_word = data.X_word[dev_end:, :]
-    test_X_year = data.X_year[dev_end:]
-    test_Y = data.Y_label[dev_end:, :]
-    print test_Y.shape
+    # dev_X_word = data.X_word[140000:170000, :32, :]
+    # dev_X_year = data.X_year[140000:170000]
+    # dev_Y = data.Y_label[140000:170000, :32]
 
-    train_data = Dataset(
-        train_X_word, 
-        train_X_year,
-        train_Y 
-    )
+    # test_X_word = data.X_word[170000:, :32, :]
+    # test_X_year = data.X_year[170000:]
+    # test_Y = data.Y_label[170000:, :32]
 
-    dev_data = Dataset(
-        dev_X_word, 
-        dev_X_year, 
-        dev_Y
-    )
+    # train_data = Dataset(
+    #     train_X_word, 
+    #     train_X_year,
+    #     train_Y 
+    # )
 
-    test_data = Dataset(
-        test_X_word, 
-        test_X_year,
-        test_Y 
-    )
+    # dev_data = Dataset(
+    #     dev_X_word, 
+    #     dev_X_year, 
+    #     dev_Y
+    # )
 
-    TRAIN_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Train"
-    DEV_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Dev"
-    TEST_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Test"
+    # test_data = Dataset(
+    #     test_X_word, 
+    #     test_X_year,
+    #     test_Y 
+    # )
 
-    train_data.save(TRAIN_SAVE_PATH)
+    # TRAIN_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/10000/Train"
+    # DEV_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/10000/Dev"
+    # TEST_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/10000/Test"
 
-    dev_data.save(DEV_SAVE_PATH)
+    # train_data.save(TRAIN_SAVE_PATH)
 
-    test_data.save(TEST_SAVE_PATH)
+    # dev_data.save(DEV_SAVE_PATH)
+
+    # test_data.save(TEST_SAVE_PATH)
  #   train_data = Dataset(
     #    np.random.uniform(size=[100, MAX_LEN, EMBED_DIM]),
   #      np.random.uniform(size=[100, MAX_LEN]),
@@ -343,13 +332,13 @@ def main():
     #     np.random.uniform(size=[100, MAX_LEN], high=100),
     # )
 
-   # TRAIN_PATH = "/home/accts/gfs22/LING_380/Data/10000/Train"
-   # DEV_PATH = "/home/accts/gfs22/LING_380/Data/10000/Dev"
-   # TEST_PATH = "/home/accts/gfs22/LING_380/Data/10000/Test"
+    TRAIN_PATH = "/home/accts/gfs22/LING_380/Data/10000/Train"
+    DEV_PATH = "/home/accts/gfs22/LING_380/Data/10000/Dev"
+    TEST_PATH = "/home/accts/gfs22/LING_380/Data/10000/Test"
 
-    train_data = Dataset.load(TRAIN_SAVE_PATH, 1)
-    dev_data = Dataset.load(DEV_SAVE_PATH, 1)
-    test_data = Dataset.load(TEST_SAVE_PATH, 1)
+    train_data = Dataset.load(TRAIN_PATH)
+    dev_data = Dataset.load(DEV_PATH)
+    test_data = Dataset.load(TEST_PATH)
 
     print("Data Loaded!")
 

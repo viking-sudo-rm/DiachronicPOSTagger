@@ -5,9 +5,12 @@ import numpy as np
 import os, sys
 from tensorflow.contrib import rnn
 from NN_data_processing_updated import read_in
+from sklearn.manifold import TSNE
 
 # To stack more LSTM layers, just add more sizes to this list
 LAYERS = [512]
+
+NUM_YEAR = 200
 
 # Maximum length of sentences
 MAX_LEN = 32 # changed from 50
@@ -18,10 +21,21 @@ EMBED_DIM = 300
 # Number of parts of speech
 N_POS = 423
 
+EMBED_PATH = "/home/accts/gfs22/LING_380/Data/Extracted/EMBED_MAT_600000.npz" 
+TRAIN_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Train"
+DEV_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Dev"
+TEST_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Test"
+
+# Year embedding params
+START_YEAR = 1800
+END_YEAR = 2020
+
 # Hyperparameters
 LR = 0.001
 N_EPOCHS = 30
-BATCH_SIZE = 100
+BATCH_SIZE =  100
+MAX_THRESHOLD = 600000
+
 
 def log(content, input_data):
     print input_data 
@@ -76,7 +90,7 @@ class Dataset:
     def load(path, split):
 
         if split == 0:
-            X_word_path = os.path.join(path, "X_word_array_5_1.npz")
+            X_word_path = os.path.join(path, "X_word_array_600000.npz")
             X_year_path = os.path.join(path, "X_year_array_5_1.npz")
             Y_path = os.path.join(path, "Y_array_5_1.npz")
 
@@ -134,12 +148,53 @@ class TemporalLanguageModel:
 
     def add_graph(self):
 
-        self.X_word = tf.placeholder(tf.float32, [None, MAX_LEN])
-        self.X_year = tf.placeholder(tf.float32, [None])
+        self.X_word = tf.placeholder(tf.int32, [None, MAX_LEN])
+        self.X_year = tf.placeholder(tf.int32, [None])
         self.Y_label = tf.placeholder(tf.int32, [None, MAX_LEN])
+        self.embedding_matrix = tf.placeholder(tf.float32, [600000, 300])
 
-        X_year = tf.expand_dims(tf.tile(tf.expand_dims(self.X_year, axis=1), [1, MAX_LEN]), axis=2)
-        X = tf.concat([self.X_word, X_year], axis=2)
+
+        #print "EMBED DIM"
+        #print embed_data.shape
+        # Embed the inputs
+        #W_embed = tf.constant(embed_data)
+       # place = tf.placeholder(tf.float32, shape=(1728400, 300))
+        #X_word = tf.where(self.X_word>MAX_THRESHOLD, tf.zeros(self.X_word.shape), self.X_word)
+        X_word = tf.nn.embedding_lookup(self.embedding_matrix, self.X_word)
+        #print X_word.shape
+
+        #print tf.shape(self.X_year)
+        new_years = tf.subtract(self.X_year, 1810)
+        #print tf.shape(new_years)
+        unembedded_year = tf.tile(tf.expand_dims(new_years, axis=1), [1, MAX_LEN])
+        print tf.shape(unembedded_year)
+        #unembedded_year = tf.expand_dims(new_years, axis=1)
+        #new matrix
+        year_embed_mat = tf.get_variable(name="year_embed_mat", shape=(NUM_YEAR, EMBED_DIM), initializer=tf.contrib.layers.xavier_initializer())
+        embedded_year = tf.nn.embedding_lookup(year_embed_mat, unembedded_year)
+
+        # Can do the same thing for years
+
+       # X_year = tf.expand_dims(tf.tile(embedded_year, [1, MAX_LEN]), axis=2)
+
+        # Can do the same thing for years
+        print embedded_year.shape
+        #X_year = tf.expand_dims(tf.tile(embedded_year, [1, MAX_LEN]), axis=2)
+        #X_year = tf.expand_dims(tf.tile(tf.expand_dims(self.X_year, axis=1), [1, MAX_LEN]), axis=2)
+       # X_year = tf.expand_dims(tf.tile(self.X_year, [1, MAX_LEN]), axis=2)
+
+        #X = tf.concat([X_word, X_year], axis=2)
+
+       # X_year = tf.expand_dims(tf.tile(tf.expand_dims(self.X_year, axis=1), [1, MAX_LEN]), axis=2)
+        X = tf.concat([X_word, embedded_year], axis=2)
+
+        # if embed_data is None:
+        #     E_year = X_year
+        # else:
+        #     E_year_W = tf.Variable(embed_data)
+        #     tf.nn.embedding_lookup
+
+        #matrix number of years by embed size - xavier initliazation
 
         rnn_layers = [rnn.LSTMCell(size) for size in LAYERS]
         multi_rnn_cell = rnn.MultiRNNCell(rnn_layers)
@@ -159,7 +214,7 @@ class TemporalLanguageModel:
         #2 vectors pointwise equal !
         #argmax by position is right thing if each of argmaxes are equal to thing
        # equal = [tf.argmax(self.Y[i], axis=2) == self.Y_label[i] for i in range(0, self.Y.shape[0])]
-        equal = tf.argmax(self.Y, axis=2) == self.Y_label 
+        equal = tf.equal(tf.cast(tf.argmax(self.Y, axis=2), tf.int32), tf.cast(self.Y_label, tf.int32))
         self.acc = tf.reduce_mean(tf.cast(equal, tf.float32))
 
         log_p = tf.gather(tf.log(self.Y), self.Y_label)
@@ -176,7 +231,7 @@ class TemporalLanguageModel:
         tf.summary.scalar('loss', self.loss)
         tf.summary.scalar('accuracy', self.acc)
 
-    def train(self, session, train_data, dev_data, test_data):
+    def train(self, session, train_data, dev_data, test_data, embed_data):
         saver = tf.train.Saver()
         session.run(tf.global_variables_initializer())
         n_batches = train_data.get_n_batches()
@@ -185,10 +240,7 @@ class TemporalLanguageModel:
         dev_loss = float("inf")
         #no_improve = 0
 
-        train_data = dev_data
-        dev_data = test_data
-
-        data_file = "/home/accts/gfs22/LING_380/Data/Output/may_1_run.txt"
+        data_file = "/home/accts/gfs22/LING_380/Data/Output/may_2_run_750.txt"
 
         content=open(data_file, "a")
 
@@ -203,15 +255,18 @@ class TemporalLanguageModel:
             train_data.shuffle()
             log(content, "SHUFFLED!!\n")
             loss = 0.
+            #sess.run(embedding_init, feed_dict={self.embedding_matrix: embed_data})
+            print np.where(train_data.X_word>MAX_THRESHOLD)
             for j, batch_X_word, batch_X_year, batch_Y_label in train_data.iter_batches():
                 d_loss, _, d_merged = session.run([self.loss, self.train_step, merged], feed_dict={
                     self.X_word: batch_X_word,
                     self.X_year: batch_X_year,
                     self.Y_label: batch_Y_label,
+                    self.embedding_matrix: embed_data
                 })
                 loss += d_loss
                 train_writer.add_summary(d_merged, i*n_batches+j)
-                log(content, "#{} BATCH : loss={:.3f}\n".format(i, d_loss)) 
+                log(content, "#{}, {}, BATCH : loss={:.3f}\n".format(i, j, d_loss)) 
             log(content, "#{} TRAIN : loss={:.3f}\n".format(i, loss / n_batches))
            # prev_dev_loss = dev_loss
             # dev_loss, dev_acc, dev_log_perp = session.run([self.loss, self.acc, self.log_perp], feed_dict={
@@ -225,6 +280,7 @@ class TemporalLanguageModel:
                 self.X_word: dev_data.X_word,
                 self.X_year: dev_data.X_year,
                 self.Y_label: dev_data.Y_label,
+                self.embedding_matrix : embed_data
             })
 
             #early stopping
@@ -240,7 +296,16 @@ class TemporalLanguageModel:
         content.close()
         del train_data
         del dev_data
-        saver.save(session, "/home/accts/gfs22/LING_380/Data/Output/model_5_1")
+        saver.save(session, "/home/accts/gfs22/LING_380/Data/Output/model_5_2_750")
+
+    def clustering(self, model):
+        sess = tf.Session()
+        saver = tf.train.import_meta_graph('/home/accts/gfs22/LING_380/Data/Output/model.meta')
+        saver.restore(sess,tf.train.latest_checkpoint('./'))
+        ### embedded_var = the year embedding from the mode
+        tsne = TSNE(n_components=2, metric="cosine")
+        image = tsne.fit_transform(embedded_var)
+        plt.scatter(*zip(*image), c="r")
 
     def test(self, test_data):
         sess = tf.Session()
@@ -282,13 +347,14 @@ class TemporalLanguageModel:
     
 def main():
 
-
     data_path = "/home/accts/gfs22/LING_380/Data/Extracted/"
     # DEV_PATH = "/home/accts/gfs22/LING_380/Data/Extracted"
     data = Dataset.load(data_path, 0)
+
     num_sent = data.X_word.shape[0]
-    train_end= int(num_sent*0.7)
-    dev_end = int(num_sent*0.85)
+   # print np.where(data.X_word>MAX_THRESHOLD)
+    train_end= 525000
+    dev_end = 637500
     data.shuffle()
 
     train_X_word = data.X_word[:train_end, :]
@@ -299,10 +365,10 @@ def main():
     dev_X_year = data.X_year[train_end:dev_end]
     dev_Y = data.Y_label[train_end:dev_end, :]
 
-    test_X_word = data.X_word[dev_end:, :]
-    test_X_year = data.X_year[dev_end:]
-    test_Y = data.Y_label[dev_end:, :]
-    print test_Y.shape
+    test_X_word = data.X_word[dev_end:750000, :]
+    test_X_year = data.X_year[dev_end:750000]
+    test_Y = data.Y_label[dev_end:750000, :]
+    #print test_Y.shape
 
     train_data = Dataset(
         train_X_word, 
@@ -322,15 +388,16 @@ def main():
         test_Y 
     )
 
-    TRAIN_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Train"
-    DEV_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Dev"
-    TEST_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Test"
 
     train_data.save(TRAIN_SAVE_PATH)
 
     dev_data.save(DEV_SAVE_PATH)
 
     test_data.save(TEST_SAVE_PATH)
+
+   #  print np.where(train_data.X_word>MAX_THRESHOLD)
+   # print("WEIRDER")
+
  #   train_data = Dataset(
     #    np.random.uniform(size=[100, MAX_LEN, EMBED_DIM]),
   #      np.random.uniform(size=[100, MAX_LEN]),
@@ -351,8 +418,20 @@ def main():
     dev_data = Dataset.load(DEV_SAVE_PATH, 1)
     test_data = Dataset.load(TEST_SAVE_PATH, 1)
 
-    print("Data Loaded!")
+    print np.where(train_data.X_word>MAX_THRESHOLD)
+    print ("WEIRD")
 
+    if EMBED_PATH is not None:
+        with open(EMBED_PATH) as fh:
+            embed_data = np.load(fh)
+            #embed_data = embed_data[:MAX_THRESHOLD,]
+            #print "loaded embed"
+    else:
+        embed_data = None
+
+  #  print("Data Loaded!")
+
+    print embed_data.shape
     session = tf.Session()
 
     print("Declare Model")
@@ -365,7 +444,7 @@ def main():
     model.add_summaries()
 
     print("Training!")
-    model.train(session, train_data, dev_data, test_data)
+    model.train(session, train_data, dev_data, test_data, embed_data)
 
     #print("Testing")
     #model.test(test_data)

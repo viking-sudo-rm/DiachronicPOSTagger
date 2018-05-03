@@ -43,7 +43,6 @@ def read_lex():
 			wID,_,word,_,pos = word_list[:5]
 			#print wID
 			pos = format_POS(pos)
-			print word, pos
 			words[word] = int(wID)
 			words_inv.append(word)
 			poss.append(pos)
@@ -143,59 +142,43 @@ def embedding_to_word(words_inv, embeddings):
 
 if __name__ == '__main__':
 
-	# embeddings = load_embeddings()
+	embeddings = load_embeddings()
 	le, updated_pos_tags, words, words_inv = read_lex()
 	embed_mat = embedding_to_word(words_inv, embeddings)
 
-	#with open(os.path.join(SAVE_PATH, "EMBED_MAT.npz"), "wb") as fh:
-	#	np.save(fh, embed_mat)
-
-	#with open(os.path.join(SAVE_PATH, "EMBED_MAT_MOD.npz"), "wb") as fh:
-	#	np.save(fh, embed_mod)
-
+	with open(os.path.join(SAVE_PATH, "EMBED_MAT.npz"), "wb") as fh:
+			np.save(fh, embed_mat)
 	X_word_arrays, X_year_arrays, Y_arrays = [], [], []
 
-	
-	for dirpath, dirnames, filenames in os.walk(CORPUS_PATH):
-		print dirnames
-		num = 0
-		for file in dirnames:
-			file_path = os.path.join(CORPUS_PATH, file)
-			num_caches = len(dircache.listdir(file_path))
-			print file_path
-			print num_caches
-			if num_caches>300:
-				filenames_chosen = np.random.choice(dircache.listdir(file_path), 300)
-			else:
-				filenames_chosen = dircache.listdir(file_path)
-			#print filenames_chosen
-			#print len(filenames_chosen)
-			for filename in filenames_chosen:
-				print(num)
-				num += 1
-				X_word_array, X_year_array, Y_array = read_in(os.path.join(file_path, filename), embeddings, le, updated_pos_tags, words, words_inv)
-				if X_word_array is not None and X_year_array is not None and Y_array is not None:
-					X_word_arrays.append(X_word_array)
-					X_year_arrays.append(X_year_array)
-					Y_arrays.append(Y_array)
+	num = 0
+	#for dirpath, dirnames, filenames in os.walk(CORPUS_PATH):
+		#print dirnames
+		#for file in dirnames:
+			#file_path = os.path.join(CORPUS_PATH, file)
+			#num_caches = len(dircache.listdir(file_path))
+			#print num_caches
+			#if num_caches>300:
+			#	filenames_chosen = np.random.choice(dircache.listdir(file_path), 300)
+			#else:
+	filenames_chosen = [os.path.join(CORPUS_PATH, 'empty_1827_7269.txt'), os.path.join(CORPUS_PATH, 'full_1827_7269.txt')]
+	#print filenames_chosen
+	#print len(filenames_chosen)
+	for filename in filenames_chosen:
+		#print(num)
+		#num += 1
+		X_word_array, X_year_array, Y_array = read_in(filename, embeddings, le, updated_pos_tags, words, words_inv)
+		if X_word_array is not None and X_year_array is not None and Y_array is not None:
+			X_word_arrays.append(X_word_array)
+			X_year_arrays.append(X_year_array)
+			Y_arrays.append(Y_array)
 
 
 	X_word_array = np.concatenate(X_word_arrays, axis=0)
 	X_year_array = np.concatenate(X_year_arrays, axis=0)
 	Y_array = np.concatenate(Y_arrays, axis=0)
 
-	#with open(os.path.join(SAVE_PATH, "X_word_array_5_1.npz"), "wb") as fh:
-	#	np.save(fh, X_word_array)
-
-	indices = np.where(X_word_array>200000)
-	X_word_array[indices]=0
-	embed_mod = embed_mat[:200000,]
-
-	# with open(os.path.join(SAVE_PATH, "EMBED_MAT_MOD.npz"), "wb") as fh:
-	# 	np.save(fh, embed_mod)
-
-	# with open(os.path.join(SAVE_PATH, "X_word_array_200000.npz"), "wb") as fh:
-	# 	np.save(fh, X_word_array)
+	with open(os.path.join(SAVE_PATH, "X_word_array_5_1.npz"), "wb") as fh:
+		np.save(fh, X_word_array)
 
 	#with open(SAVE_PATH) as fh:
 #		np.save(os.path.join(fh, "X_word_array_1810s.npz"), X_word_array)
@@ -215,11 +198,11 @@ if __name__ == '__main__':
 #    with open(os.path.join(SAVE_PATH, "Y_array_1810s.npz"), "wb") as fh:
 #    	np.save(fh, Y_array)
 
-	# with open(os.path.join(SAVE_PATH, "X_year_array_5_1.npz"), "wb") as fh:
-	# 	np.save(fh, X_year_array)
+	with open(os.path.join(SAVE_PATH, "X_year_array_5_1.npz"), "wb") as fh:
+		np.save(fh, X_year_array)
 
-	# with open(os.path.join(SAVE_PATH, "Y_array_5_1.npz"), "wb") as fh:
-	# 	np.save(fh, Y_array)
+	with open(os.path.join(SAVE_PATH, "Y_array_5_1.npz"), "wb") as fh:
+		np.save(fh, Y_array)
 	
 	
 	#with open(os.path.join(SAVE_PATH, "X_test.npz"), "wb") as fh:
