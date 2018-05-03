@@ -19,21 +19,21 @@ MAX_LEN = 32 # changed from 50
 EMBED_DIM = 300
 
 # Number of parts of speech
-N_POS = 423
+N_POS = 424
 
-EMBED_PATH = "/home/accts/gfs22/LING_380/Data/Extracted/EMBED_MAT_600000.npz" 
+EMBED_PATH = "/home/accts/gfs22/LING_380/Data/Extracted/EMBED_MOD.npz" 
 TRAIN_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Train"
 DEV_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Dev"
 TEST_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Test"
 
 # Year embedding params
-START_YEAR = 1800
-END_YEAR = 2020
+#START_YEAR = 1800
+#END_YEAR = 2020
 
 # Hyperparameters
 LR = 0.001
-N_EPOCHS = 30
-BATCH_SIZE =  100
+N_EPOCHS = 7
+BATCH_SIZE = 100 
 MAX_THRESHOLD = 600000
 
 
@@ -91,8 +91,8 @@ class Dataset:
 
         if split == 0:
             X_word_path = os.path.join(path, "X_word_array_600000.npz")
-            X_year_path = os.path.join(path, "X_year_array_5_1.npz")
-            Y_path = os.path.join(path, "Y_array_5_1.npz")
+            X_year_path = os.path.join(path, "X_year_array_5_2.npz")
+            Y_path = os.path.join(path, "Y_array_5_2.npz")
 
         else: 
             X_word_path = os.path.join(path, "X_word_array.npz")
@@ -170,8 +170,8 @@ class TemporalLanguageModel:
         print tf.shape(unembedded_year)
         #unembedded_year = tf.expand_dims(new_years, axis=1)
         #new matrix
-        year_embed_mat = tf.get_variable(name="year_embed_mat", shape=(NUM_YEAR, EMBED_DIM), initializer=tf.contrib.layers.xavier_initializer())
-        embedded_year = tf.nn.embedding_lookup(year_embed_mat, unembedded_year)
+        self.year_embed_mat = tf.get_variable(name="year_embed_mat", shape=(NUM_YEAR, EMBED_DIM), initializer=tf.contrib.layers.xavier_initializer())
+        embedded_year = tf.nn.embedding_lookup(self.year_embed_mat, unembedded_year)
 
         # Can do the same thing for years
 
@@ -240,7 +240,7 @@ class TemporalLanguageModel:
         dev_loss = float("inf")
         #no_improve = 0
 
-        data_file = "/home/accts/gfs22/LING_380/Data/Output/may_2_run_750.txt"
+        data_file = "/home/accts/gfs22/LING_380/Data/Output/may_3_mod_embed.txt"
 
         content=open(data_file, "a")
 
@@ -296,12 +296,14 @@ class TemporalLanguageModel:
         content.close()
         del train_data
         del dev_data
-        saver.save(session, "/home/accts/gfs22/LING_380/Data/Output/model_5_2_750")
+        saver.save(session, "/home/accts/gfs22/LING_380/Data/Output/model_may_3_mod_embed")
 
-    def clustering(self, model):
+
+    def clustering(self):
         sess = tf.Session()
-        saver = tf.train.import_meta_graph('/home/accts/gfs22/LING_380/Data/Output/model.meta')
-        saver.restore(sess,tf.train.latest_checkpoint('./'))
+        saver = tf.train.import_meta_graph('/home/accts/gfs22/LING_380/Data/Output/old_arch.meta')
+        saver.restore(sess,tf.train.latest_checkpoint('/home/accts/gfs22/LING_380/Data/Output/'))
+        embedded_var = sess.run(self.year_embed_mat)
         ### embedded_var = the year embedding from the mode
         tsne = TSNE(n_components=2, metric="cosine")
         image = tsne.fit_transform(embedded_var)
@@ -309,9 +311,9 @@ class TemporalLanguageModel:
 
     def test(self, test_data):
         sess = tf.Session()
-        saver = tf.train.import_meta_graph('/home/accts/gfs22/LING_380/Data/Output/model.meta')
-        saver.restore(sess,tf.train.latest_checkpoint('./'))
-        test_acc = session.run(self.acc, feed_dict={
+        saver = tf.train.import_meta_graph('/home/accts/gfs22/LING_380/Data/Output/old_arch.meta')
+        saver.restore(sess,tf.train.latest_checkpoint('/home/accts/gfs22/LING_380/Data/Output/'))
+        test_acc = sess.run(self.acc, feed_dict={
                 self.X_word: test_data.X_word,
                 self.X_year: test_data.X_year,
                 self.Y_label: test_data.Y_label,
@@ -418,8 +420,8 @@ def main():
     dev_data = Dataset.load(DEV_SAVE_PATH, 1)
     test_data = Dataset.load(TEST_SAVE_PATH, 1)
 
-    print np.where(train_data.X_word>MAX_THRESHOLD)
-    print ("WEIRD")
+    #print np.where(train_data.X_word>MAX_THRESHOLD)
+    #print ("WEIRD")
 
     if EMBED_PATH is not None:
         with open(EMBED_PATH) as fh:

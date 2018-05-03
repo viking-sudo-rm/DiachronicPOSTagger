@@ -20,7 +20,7 @@ EMBED_DIM = 300
 # Number of parts of speech
 N_POS = 423
 
-EMBED_PATH = "/home/accts/gfs22/LING_380/Data/Extracted/EMBED_MAT_MOD.npz" 
+EMBED_PATH = "/home/accts/gfs22/LING_380/Data/Extracted/EMBED_MOD.npz" 
 TRAIN_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Train"
 DEV_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Dev"
 TEST_SAVE_PATH = "/home/accts/gfs22/LING_380/Data/Full/Test"

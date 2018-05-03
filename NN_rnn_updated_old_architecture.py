@@ -134,8 +134,22 @@ class TemporalLanguageModel:
         self.X_year = tf.placeholder(tf.float32, [None])
         self.Y_label = tf.placeholder(tf.int32, [None, MAX_LEN])
 
-        X_year = tf.expand_dims(tf.tile(tf.expand_dims(self.X_year, axis=1), [1, MAX_LEN]), axis=2)
-        X = tf.concat([self.X_word, X_year], axis=2)
+       # X_word = tf.nn.embedding_lookup(self.embedding_matrix, self.X_word)
+        #print X_word.shape
+
+        #print tf.shape(self.X_year)
+        new_years = tf.subtract(self.X_year, 1810)
+        #print tf.shape(new_years)
+        unembedded_year = tf.tile(tf.expand_dims(new_years, axis=1), [1, MAX_LEN])
+        print tf.shape(unembedded_year)
+        #unembedded_year = tf.expand_dims(new_years, axis=1)
+        #new matrix
+        year_embed_mat = tf.get_variable(name="year_embed_mat", shape=(NUM_YEAR, EMBED_DIM), initializer=tf.contrib.layers.xavier_initializer())
+        embedded_year = tf.nn.embedding_lookup(year_embed_mat, unembedded_year)
+
+        #X_year = tf.expand_dims(tf.tile(tf.expand_dims(self.X_year, axis=1), [1, MAX_LEN]), axis=2)
+        #X = tf.concat([self.X_word, X_year], axis=2)
+        X = tf.concat([self.X_word, embedded_year], axis=2)
 
         rnn_layers = [rnn.LSTMCell(size) for size in LAYERS]
         multi_rnn_cell = rnn.MultiRNNCell(rnn_layers)

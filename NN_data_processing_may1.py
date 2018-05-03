@@ -18,6 +18,8 @@ CORPUS_PATH = os.path.join(DATA_PATH, "Corpus")
 SAVE_PATH = os.path.join(DATA_PATH, "Extracted")
 LEX_PATH = os.path.join(DATA_PATH, "Embeddings/lexicon.txt")
 
+MAX_THRESHOLD = 600000
+
 def load_embeddings():
 	print("EMBEDDING START")
 	model = KeyedVectors.load_word2vec_format(EMBED_PATH, binary=True)
@@ -25,33 +27,37 @@ def load_embeddings():
 	print("EMBEDDING STOP")
 	return model
 
-def read_lex():
+def read_lex(embeddings):
 
 	with open(LEX_PATH) as fh:
 		lines = fh.readlines()
 
-	num_words = len(lines)
+	num_words = len(lines) + 1
 
+	embed_mat = np.ones([num_words, 300])
 	poss = []
 	words = {}
-	words_inv = [None]
 
 	for line in lines:
-		word_list = line.split()
-		#print(word_list)
-		if len(word_list)==5 and word_list[1]!="@":
-			wID,_,word,_,pos = word_list[:5]
-			#print wID
+		word_list = line.strip().split("\t")
+		if len(word_list) == 5:
+			wid, _, word, _, pos = word_list[:5]
+			if "--" in word:
+				continue
+				# print "--", word_list
+			wid = int(wid)
 			pos = format_POS(pos)
-			print word, pos
-			words[word] = int(wID)
-			words_inv.append(word)
+			words[word] = wid
 			poss.append(pos)
+			if word in embeddings:
+				embed_mat[wid, :] = embeddings[word]
+		else:
+			poss.append("N/A")
 
 	le = LabelEncoder()
 	le.fit(poss)
 
-	return le, poss, words, words_inv
+	return le, poss, words, embed_mat
 
 
 #	print("ENCODE POS")
@@ -63,7 +69,7 @@ def read_lex():
 #	return le, updated_pos_tags
 
 
-def read_in(file_name, embeddings, le, updated_pos_tags, words, words_inv):
+def read_in(file_name, embeddings, le, updated_pos_tags, words):
 
 	print("READ IN  START")
 
@@ -93,7 +99,7 @@ def read_in(file_name, embeddings, le, updated_pos_tags, words, words_inv):
 			pos = format_POS(pos)
 			if pos in updated_pos_tags:
 				word = word.lower()
-				if word in words_inv:
+				if word in embeddings:
 					X_word[counter] = words[word]
 				else:
 					X_word[counter] = 0
@@ -126,27 +132,16 @@ def read_in(file_name, embeddings, le, updated_pos_tags, words, words_inv):
 
 format_POS = lambda pos: pos.split("_")[0]
 
-def embedding_to_word(words_inv, embeddings):
-	f = lambda word: embeddings[word] if word in embeddings else np.ones([300])
-	return np.array(map(f, words_inv))
-
-#pos.pkl
-#depth - depth used for all tags
-#def encode_POS():
-#	print("ENCODE POS")
-#	pos_tags = pk.load(open(TAGS_PATH))
-#	updated_pos_tags = [format_POS(tag) for tag in pos_tags]
-#	le = LabelEncoder()
-#	le.fit(updated_pos_tags)
-#	print("ENCODE POS DONE")
-#	return le, updated_pos_tags
-
 if __name__ == '__main__':
 
-	# embeddings = load_embeddings()
-	le, updated_pos_tags, words, words_inv = read_lex()
-	embed_mat = embedding_to_word(words_inv, embeddings)
+	embeddings = load_embeddings()
+	le, updated_pos_tags, words, embed_mat = read_lex(embeddings)
+	#embed_mod = embed_mat[:100,]
 
+	#print le.transform(updated_pos_tags[:100])
+	updated_pos_tags = set(updated_pos_tags)
+
+	
 	#with open(os.path.join(SAVE_PATH, "EMBED_MAT.npz"), "wb") as fh:
 	#	np.save(fh, embed_mat)
 
@@ -173,7 +168,7 @@ if __name__ == '__main__':
 			for filename in filenames_chosen:
 				print(num)
 				num += 1
-				X_word_array, X_year_array, Y_array = read_in(os.path.join(file_path, filename), embeddings, le, updated_pos_tags, words, words_inv)
+				X_word_array, X_year_array, Y_array = read_in(os.path.join(file_path, filename), embeddings, le, updated_pos_tags, words)
 				if X_word_array is not None and X_year_array is not None and Y_array is not None:
 					X_word_arrays.append(X_word_array)
 					X_year_arrays.append(X_year_array)
@@ -187,15 +182,25 @@ if __name__ == '__main__':
 	#with open(os.path.join(SAVE_PATH, "X_word_array_5_1.npz"), "wb") as fh:
 	#	np.save(fh, X_word_array)
 
-	indices = np.where(X_word_array>200000)
+	with open(os.path.join(SAVE_PATH, "EMBED_MAT.npz"), "wb") as fh:
+	 	np.save(fh, embed_mat)
+
+	with open(os.path.join(SAVE_PATH, "X_word_array_5_2.npz"), "wb") as fh:
+		np.save(fh, X_word_array)
+
+	indices = np.where(X_word_array>MAX_THRESHOLD)
 	X_word_array[indices]=0
-	embed_mod = embed_mat[:200000,]
+	embed_mod = embed_mat[:MAX_THRESHOLD,]
+
+	with open(os.path.join(SAVE_PATH, "EMBED_MOD.npz"), "wb") as fh:
+	 	np.save(fh, embed_mod)
+
 
 	# with open(os.path.join(SAVE_PATH, "EMBED_MAT_MOD.npz"), "wb") as fh:
 	# 	np.save(fh, embed_mod)
 
-	# with open(os.path.join(SAVE_PATH, "X_word_array_200000.npz"), "wb") as fh:
-	# 	np.save(fh, X_word_array)
+	with open(os.path.join(SAVE_PATH, "X_word_array_600000.npz"), "wb") as fh:
+		np.save(fh, X_word_array)
 
 	#with open(SAVE_PATH) as fh:
 #		np.save(os.path.join(fh, "X_word_array_1810s.npz"), X_word_array)
@@ -215,11 +220,11 @@ if __name__ == '__main__':
 #    with open(os.path.join(SAVE_PATH, "Y_array_1810s.npz"), "wb") as fh:
 #    	np.save(fh, Y_array)
 
-	# with open(os.path.join(SAVE_PATH, "X_year_array_5_1.npz"), "wb") as fh:
-	# 	np.save(fh, X_year_array)
+	with open(os.path.join(SAVE_PATH, "X_year_array_5_2.npz"), "wb") as fh:
+		np.save(fh, X_year_array)
 
-	# with open(os.path.join(SAVE_PATH, "Y_array_5_1.npz"), "wb") as fh:
-	# 	np.save(fh, Y_array)
+	with open(os.path.join(SAVE_PATH, "Y_array_5_2.npz"), "wb") as fh:
+		np.save(fh, Y_array)
 	
 	
 	#with open(os.path.join(SAVE_PATH, "X_test.npz"), "wb") as fh:
