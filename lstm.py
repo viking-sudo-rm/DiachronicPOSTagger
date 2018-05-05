@@ -2,10 +2,12 @@ from __future__ import division
 
 import tensorflow as tf
 import numpy as np
-import os, sys
+import os, sys, argparse
+from data_processing import format_word
 from tensorflow.contrib import rnn
-from NN_data_processing_updated import read_in
 from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 
 # To stack more LSTM layers, just add more sizes to this list
 LAYERS = [512]
@@ -30,6 +32,10 @@ WRITE_TO_PATH = "/home/accts/gfs22/LING_380/Data/Output/FINAL_R.txt"
 X_WORD_FILENAME = "X_word_array_FINAL_TRIMMED_R.npz"
 X_YEAR_FILENAME = "X_year_array_FINAL_R.npz"
 Y_FILENAME = "Y_array_FINAL_R.npz"
+LOSS_POINTS_PATH = "/home/accts/gfs22/LING_380/Data/Output/loss_by_batch.txt"
+LEX_PATH = "/home/accts/gfs22/LING_380/Data/Embeddings/lexicon.txt"
+
+DIM_RED = PCA
 
 # Year embedding params
 START_YEAR = 1810
@@ -181,20 +187,11 @@ class TemporalLanguageModel:
         self.train_step = tf.train.AdamOptimizer(LR).minimize(self.loss)
 
 
-    # def add_summaries(self):
-    #     tf.summary.scalar('loss', self.loss)
-    #     tf.summary.scalar('accuracy', self.acc)
-
     #Function to train model
     def train(self, session, train_data, dev_data, test_data, embed_data):
         saver = tf.train.Saver()
         session.run(tf.global_variables_initializer())
         n_batches = train_data.get_n_batches()
-        merged = tf.summary.merge_all()
-        #train_writer = tf.summary.FileWriter( "/home/accts/gfs22/LING_380/Data/Output/Train_Summary", session.graph)
-        #dev_loss = float("inf")
-        #no_improve = 0
-
     
         data_file = WRITE_TO_PATH
 
@@ -210,25 +207,16 @@ class TemporalLanguageModel:
 
             #Loop through Batches
             for j, batch_X_word, batch_X_year, batch_Y_label in train_data.iter_batches():
-                d_loss, _, d_merged = session.run([self.loss, self.train_step, merged], feed_dict={
+                d_loss, _ = session.run([self.loss, self.train_step], feed_dict={
                     self.X_word: batch_X_word,
                     self.X_year: batch_X_year,
                     self.Y_label: batch_Y_label,
                     self.embedding_matrix: embed_data
                 })
                 loss += d_loss
-                #train_writer.add_summary(d_merged, i*n_batches+j)
                 if j%5000==0:
                     log(content, "#{}, {}, BATCH : loss={:.3f}\n".format(i, j, d_loss)) 
             log(content, "#{} TRAIN : loss={:.3f}\n".format(i, loss / n_batches))
-           
-           # prev_dev_loss = dev_loss
-            # dev_loss, dev_acc, dev_log_perp = session.run([self.loss, self.acc, self.log_perp], feed_dict={
-            #     self.X_word: dev_data.X_word,
-            #     self.X_year: dev_data.X_year,
-            #     self.Y_label: dev_data.Y_label,
-            # })
-            #over sequence not part of speech!!
 
             #Calculate Accuracy on Development Set at the end of the epoch
             dev_acc = session.run(self.acc, feed_dict={
@@ -237,34 +225,14 @@ class TemporalLanguageModel:
                 self.Y_label: dev_data.Y_label,
                 self.embedding_matrix : embed_data
             })
-
-            #early stopping
-            # if dev_loss<prev_dev_loss:
-            #     no_improve=0
-            
-            # else:
-            #     no_improve+=1
-            
-            # if no_improve>3:
-            #     break
-
-            #log(content, "#{} DEV : loss={:.3f}\n".format(i, dev_loss))
             log(content, "#{} DEV : acc={:.3f}\n".format(i, dev_acc)) 
 
         content.close()
         del train_data
         del dev_data
-        saver.save(session, MODEL_PATH)
 
-    #Method to annotate clustered plots
-    @staticmethod
-    def annotate(image, words, n=float("inf")):
-        for i, (label, x, y) in enumerate(zip(words, image[:, 0], image[:, 1])):
-            if i == n: break
-            plt.annotate(
-                label,
-                xy=(x, y)
-            )
+        #Save model
+        saver.save(session, MODEL_PATH)
 
     #Method to produce clustering plot
     def clustering(self):
@@ -277,8 +245,8 @@ class TemporalLanguageModel:
         embedded_var = sess.run(self.year_embed_mat)
 
         #Fit TSNE to year embedding
-        tsne = TSNE(n_components=2, metric="cosine")
-        image = tsne.fit_transform(embedded_var)
+        reducer = TSNE(n_components=2, metric="cosine") if DIM_RED == TSNE else PCA(n_components=2)
+        image = reducer.fit_transform(embedded_var)
         
         #Plot Clusters
         size = 50
@@ -286,15 +254,54 @@ class TemporalLanguageModel:
         for i in xrange(0, len(image), size):
             plt.scatter(*zip(*image[i:i+size,:]), c=colors[int(i / size)])
 
-        #Annotate Clusters
-        TemporalLanguageModel.annotate(image, map(str, range(1810, 2010)))
+        plt.legend(["1810-1859", "1860-1909", "1910-1959", "1960-2009"])
+        plt.title("Year Embedding Clustering by Half Century ({})".format("TSNE" if DIM_RED == TSNE else "PCA"))
+
+        #Show plot
+        plt.show()
+
+    def linear_reduction(self):
+        #Restore Model
+        sess = tf.Session()
+        saver = tf.train.Saver()
+        saver.restore(sess, MODEL_PATH)
+
+        #Extract year embedding from restored model
+        embedded_var = sess.run(self.year_embed_mat)
+
+        #Fit Dimension Reduction to year embedding
+        reducer = TSNE(n_components=1, metric="cosine") if DIM_RED == TSNE else PCA(n_components=1)
+        image = reducer.fit_transform(embedded_var)
+        lin_vals =  image[:, 0]
+        
+        plt.scatter(range(1810, 2010), lin_vals)
+        plt.title("1D {} vs. Year".format("TSNE" if DIM_RED == TSNE else "PCA"))
+
+        #Calculate R squared
+        correlation = np.corrcoef(range(1810, 2010), lin_vals)[0,1]
+        print correlation, correlation**2
 
         #Show plot
         plt.show()
 
 
+    def learning_curve(self, file_name):
+
+        #Open loss values by batch 
+        with open(file_name) as fh:
+            lines = fh.readlines()
+        batch_loss = [map(float,line.split()) for line in lines]
+        batch, loss = zip(*batch_loss)
+
+        #plot loss values verses batch number
+        plt.title("Training Loss vs. Batch")
+        plt.plot(batch, loss)
+        plt.xlabel("Batch")
+        plt.ylabel("Loss")
+        plt.show()
+
     #Calculate Test Accuracy
-    def test(self, test_data):
+    def test(self, test_data, embed_data):
         #Restore Model
         sess = tf.Session()
         saver = tf.train.Saver()
@@ -305,15 +312,25 @@ class TemporalLanguageModel:
                 self.X_word: test_data.X_word,
                 self.X_year: test_data.X_year,
                 self.Y_label: test_data.Y_label,
+                self.embedding_matrix: embed_data
         })
         print('Test acc: {}'.format(test_acc))
         return test_acc
 
-    def sample_sentence(self, X_word_array, Y_array):
+    def sample_sentence(self, X_word_array, Y_array, X_year, embed_data, words):
         #Restore Model
         sess = tf.Session()
         saver = tf.train.Saver()
         saver.restore(sess, MODEL_PATH)
+
+        #Find sentence corresponding to input X_word_array
+        sentence = []
+        for i in X_word_array:
+            sentence.append(words[i])
+            if words[i]==".":
+                break
+
+        sentence = " ".join(sentence)
 
         #Get inputs for sample sentence
         years = np.arange(START_YEAR, END_YEAR)
@@ -324,18 +341,41 @@ class TemporalLanguageModel:
         metric = sess.run(self.log_perp, feed_dict={
             self.X_word: X_word_array,
             self.X_year: years,
-            self.Y_label: Y_array
+            self.Y_label: Y_array,
+            self.embedding_matrix: embed_data
         })
 
+        #Print each sentence and year of sentence
+        print sentence
+        print X_year
 
-        #Plot Years vs. Entropy
-        plt.title(str(X_year))
-        plt.plot(years, metric)
+        #Plot Entropy vs. Years
+        plt.scatter(years, metric)
         plt.xlabel("Years")
         plt.ylabel("Entropy")
-
+        
         #Show plot
         plt.show()
+
+def read_lex():
+
+    #Open Lexicon
+    with open(LEX_PATH) as fh:
+        lines = fh.readlines()
+
+    words = {0:"UNK"}
+
+    #Fill in words, a dictionary that maps words to actual embeddings
+    for line in lines:
+        word_list = line.strip().split("\t")
+        if len(word_list) == 5:
+            wid, _, word, _, _ = word_list[:5]
+            word = format_word(word)
+            wid = int(wid)
+            if wid not in words:
+                words[wid] = word
+
+    return words
 
 #Function to Divide data set into train, dev and test
 def cut_dataset(data_path):
@@ -394,20 +434,30 @@ def cut_dataset(data_path):
 
 def main():
 
+    parser = argparse.ArgumentParser(description="Train LSTM POS model.")
+
+    #Cut the Data set
+    parser.add_argument("--cut", action="store_true")
+
+    #Do not train
+    parser.add_argument("--notrain", action="store_true")
+
+    args = parser.parse_args()
+
     #Create Train, Dev, and Test Data
-    cut_dataset(DATA_PATH)
+    if args.cut:
+        cut_dataset(DATA_PATH)
 
     #Load Train, Dev, and Test Data
-    train_data = Dataset.load(TRAIN_SAVE_PATH, 1)
-    dev_data = Dataset.load(DEV_SAVE_PATH, 1)
+    if not args.notrain:
+        train_data = Dataset.load(TRAIN_SAVE_PATH, 1)
+        dev_data = Dataset.load(DEV_SAVE_PATH, 1)
+
     test_data = Dataset.load(TEST_SAVE_PATH, 1)
 
     #Load Embedding Matrix
-    if EMBED_PATH is not None:
-        with open(EMBED_PATH) as fh:
-            embed_data = np.load(fh)
-    else:
-        embed_data = None
+    with open(EMBED_PATH) as fh:
+        embed_data = np.load(fh)
 
     #Create a session
     session = tf.Session()
@@ -418,26 +468,36 @@ def main():
     print("Adding Graph")
     model.add_graph()
 
-   # print("Adding summaries")
-   # model.add_summaries()
-
-    print("Training!")
-    model.train(session, train_data, dev_data, test_data, embed_data)
+    if not args.notrain:
+        print("Training!")
+        model.train(session, train_data, dev_data, test_data, embed_data)
 
     print("Testing")
-    model.test(test_data)
+    model.test(test_data, embed_data)
+
+    print("Learning Curve")
+    model.learning_curve(LOSS_POINTS_PATH)
+
+    print("Linear Reduction")
+    model.linear_reduction()
 
     print("Clustering")
     model.clustering()
-    
+
     print("Sample Sentence")
+    
+    #Sample random 15 sentences from test data
     NUM_SENT = 750000
-    sample_indices = np.random.randint(int(0.15*NUM_SENT, size=(1, 15))
+    words = read_lex()
+    sample_indices = np.random.uniform(low=0, high=int(0.15*NUM_SENT)-1, size=15).astype(np.int32)
+   
+    #Run sample_sentence code on data from each of 15 sentences from test data
     for index in sample_indices:
-        X_word_arr = test_data.X_word[index,:]
-        Y_arr = test_data.Y_label[index,:]
+        print index
+        X_word_arr = test_data.X_word[index, :]
+        Y_arr = test_data.Y_label[index, :]
         X_year = test_data.X_year[index]
-        model.sample_sentence(X_word_arr, Y_arr)
+        model.sample_sentence(X_word_arr, Y_arr, X_year, embed_data, words)
 
 
 if __name__ == "__main__":

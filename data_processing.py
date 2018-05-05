@@ -205,7 +205,7 @@ if __name__ == '__main__':
 	indices = np.where(X_word_array>MAX_THRESHOLD)
 	X_word_array[indices]=0
 
-	#Only store embeddings of 600000 most common words
+	#Only store embeddings of 600,000 most common words
 	embed_mod = embed_mat[:MAX_THRESHOLD,]
 
 	#Save version of X_word_array with only indices for 600,000 most common words
