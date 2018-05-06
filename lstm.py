@@ -8,6 +8,7 @@ from tensorflow.contrib import rnn
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
+import statsmodels.api as sm
 
 # To stack more LSTM layers, just add more sizes to this list
 LAYERS = [512]
@@ -176,6 +177,7 @@ class TemporalLanguageModel:
         mask = tf.cast(tf.one_hot(self.Y_label, N_POS), tf.float32)
         p = tf.reduce_sum(tf.nn.softmax(self.Y) * mask, axis=2)
         self.log_perp = -tf.reduce_sum(tf.log(p), axis=1)/MAX_LEN
+        self.perp = tf.exp(self.log_perp)
 
         #Calculate Loss
         self.loss = tf.losses.sparse_softmax_cross_entropy(
@@ -338,7 +340,7 @@ class TemporalLanguageModel:
         Y_array = np.tile(np.expand_dims(Y_array, axis=0), [NUM_YEAR, 1])
 
         #Calculate Entropy for input sentence over all years
-        metric = sess.run(self.log_perp, feed_dict={
+        metric = sess.run(self.perp, feed_dict={
             self.X_word: X_word_array,
             self.X_year: years,
             self.Y_label: Y_array,
@@ -349,10 +351,16 @@ class TemporalLanguageModel:
         print sentence
         print X_year
 
-        #Plot Entropy vs. Years
+        #Generate Lowess Curve
+        lowess = sm.nonparametric.lowess(metric, years, frac=.3)
+        lowess_year = list(zip(*lowess))[0]
+        lowess_metric = list(zip(*lowess))[1]
+
+        #Plot Perplexity vs. Years
         plt.scatter(years, metric)
+        plt.plot(lowess_year, lowess_metric, c="r")
         plt.xlabel("Years")
-        plt.ylabel("Entropy")
+        plt.ylabel("Perplexity")
         
         #Show plot
         plt.show()
