@@ -11,6 +11,7 @@ Our implementation uses the following Python dependencies:
 4) dircache
 5) sklearn
 6) matplotlib
+7) statsmodels
 
 All of these libraries can be installed with pip.
 
