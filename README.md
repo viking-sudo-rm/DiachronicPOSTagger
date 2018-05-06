@@ -2,7 +2,7 @@
 
 We train a diachronic long short-term memory (LSTM) part-of-speech tagger on a large corpus of American English from the 19th, 20th, and 21st centuries. In addition to evaluating the overall performance of the model, we analyze whether the embeddings are able to learn the temporal structure between years, and the extent to which the model can be used to predict the year of composition of a novel sentence. Our network achieves a validation accuracy of 93.5%. In addition, analysis of the learned year embeddings revealed a strong linear correlation between the principal component of the year embeddings and time. 
 
-### Dependencies
+## Dependencies
 
 Our implementation uses the following Python dependencies:
 1) numpy
