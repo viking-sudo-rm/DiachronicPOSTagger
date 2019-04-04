@@ -134,7 +134,7 @@ class Dataset:
 class TemporalLanguageModel:
 
     #Create Graph Object
-    def add_graph(self):
+    def add_graph(self, noyear=False):
 
         #Create placeholders for LSTM
         self.X_word = tf.placeholder(tf.int32, [None, MAX_LEN])
@@ -149,7 +149,11 @@ class TemporalLanguageModel:
         new_years = tf.subtract(self.X_year, START_YEAR)
         unembedded_year = tf.tile(tf.expand_dims(new_years, axis=1), [1, MAX_LEN])
         self.year_embed_mat = tf.get_variable(name="year_embed_mat", shape=(NUM_YEAR, EMBED_DIM), initializer=tf.contrib.layers.xavier_initializer())
-        embedded_year = tf.nn.embedding_lookup(self.year_embed_mat, unembedded_year)
+
+        if noyear:
+            embedded_year = tf.zeros(tf.shape(year_embed_mat)
+        else:
+            embedded_year = tf.nn.embedding_lookup(self.year_embed_mat, unembedded_year)
 
         #Concatenate X_word and year embedding layer to get one input
         X = tf.concat([X_word, embedded_year], axis=2)
@@ -191,7 +195,7 @@ class TemporalLanguageModel:
         self.train_step = tf.train.AdamOptimizer(LR).minimize(self.loss)
 
         #Create Graph Object
-    def add_graph_FF(self):
+    def add_graph_FF(self, noyear=False):
 
         #Create placeholders for LSTM
         self.X_word = tf.placeholder(tf.int32, [None, MAX_LEN])
@@ -561,6 +565,9 @@ def main():
     # Feed-Forward vs. LSTM
     parser.add_argument("--feedforward", action="store_true")
 
+    # Year Information 
+    parser.add_argument("--noyear", action="store_true")
+
     args = parser.parse_args()
 
     #Create Train, Dev, and Test Data
@@ -584,13 +591,15 @@ def main():
     print("Declare Model")
     model = TemporalLanguageModel()
 
+    no_year = args.noyear
+
     print("Adding Graph")
     if(args.feedforward):
         print("Feedforward")
-        model.add_graph_FF()
+        model.add_graph_FF(noyear)
     else:
         print("LSTM")
-        model.add_graph()
+        model.add_graph(noyear)
 
     if not args.notrain:
         print("Training!")
