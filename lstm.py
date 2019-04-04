@@ -605,7 +605,7 @@ def main():
     print("Declare Model")
     model = TemporalLanguageModel()
 
-    no_year = args.noyear
+    noyear = args.noyear
     feedforward = args.feedforward
 
     if noyear:
