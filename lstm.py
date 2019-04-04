@@ -352,7 +352,6 @@ class TemporalLanguageModel:
         #Show plot
         plt.show()
 
-
     def learning_curve(self, file_name):
 
         #Open loss values by batch 
@@ -431,14 +430,10 @@ class TemporalLanguageModel:
         #Show plot
         plt.show()
 
-    def average_perplexity(self, sentences, tags_list, actual_years, embed_data):
+    def average_perplexity(self, sentences, tags_list, actual_years, embed_data, feedforward):
         sess = tf.Session()
         saver = tf.train.Saver()
         saver.restore(sess, MODEL_PATH)
-
-        lowess_year_sum = 0.
-        lowess_year_count = 0.
-
 
         year_dict = defaultdict(list)
         metric_dict = defaultdict(list)
@@ -465,6 +460,16 @@ class TemporalLanguageModel:
             year_dict[decade].extend(list(years))
             metric_dict[decade].extend(list(metric))
 
+        try:
+            model_type = "FF" if feedforward else "LSTM"
+            pickle_path = "/home/accts/gfs22/LING_380/Plots/Year" + model_type + "/"
+            with open(pickle_path, "wb") as fh:
+                import pickle
+                pickle.dump(year_dict, pickle_path + "year_dict.pkl")
+                pickle.dump(metric_dict, pickle_path + "metric_dict.pkl")
+        except:
+            pass
+
         for decade in year_dict.keys():
             metric_list = metric_dict[decade]
             year_list = year_dict[decade]
@@ -473,14 +478,16 @@ class TemporalLanguageModel:
             lowess_metric = list(zip(*lowess))[1]
 
             #Plot Perplexity vs. Years
-            plt.scatter(years, metric)
+            plt.scatter(year_list, metric_list)
             plt.plot(lowess_year, lowess_metric, c="r")
             plt.xlabel("Years")
             plt.ylabel("Perplexity")
             plt.title(str(decade) + "s")
         
-        #Show plot
-        plt.show()
+            
+            plt.save("/home/accts/gfs22/LING_380/Plots/Year" + model_type + "/" + str(decade) + ".png")
+            #Show plot
+            plt.show()
 
 def read_lex():
 
@@ -599,10 +606,15 @@ def main():
     model = TemporalLanguageModel()
 
     no_year = args.noyear
+    feedforward = args.feedforward
+
+    if noyear:
+        MODEL_PATH += "_NY"
 
     print("Adding Graph")
     if(args.feedforward):
         print("Feedforward")
+        MODEL_PATH += "_FF"
         model.add_graph_FF(noyear)
     else:
         print("LSTM")
@@ -612,33 +624,20 @@ def main():
         print("Training!")
         model.train(session, train_data, dev_data, test_data, embed_data)
 
-   # print("Testing")
-   # model.test(test_data, embed_data)
+    print("Testing")
+    model.test(test_data, embed_data)
 
- #   print("Learning Curve")
-#    model.learning_curve(LOSS_POINTS_PATH)
+    if not noyear:
 
-  #  print("Linear Reduction")
-  #  model.linear_reduction()
+        print("Average Perplexity")
+        model.average_perplexity(test_data.X_word, test_data.Y_label, test_data.X_year, embed_data, feedforward)
 
-   # print("Clustering")
-   # model.clustering()
+        print("Linear Reduction")
+        model.linear_reduction()
 
-    #print("Sample Sentence")
-    
-    #Sample random 15 sentences from test data
-   # NUM_SENT = 750000
-   # words = read_lex()
-   # sample_indices = np.random.uniform(low=0, high=int(0.15*NUM_SENT)-1, size=15).astype(np.int32)
-   
-    #Run sample_sentence code on data from each of 15 sentences from test data
-  #  for index in sample_indices:
-  #      print(index)
-  #      X_word_arr = test_data.X_word[index, :]
-  #      Y_arr = test_data.Y_label[index, :]
-  #      X_year = test_data.X_year[index]
-  #      model.sample_sentence(X_word_arr, Y_arr, X_year, embed_data, words)
-    model.average_perplexity(test_data.X_word, test_data.Y_label, test_data.X_year, embed_data)
+        print("Clustering")
+        model.clustering()
+
 
 if __name__ == "__main__":
     main()
