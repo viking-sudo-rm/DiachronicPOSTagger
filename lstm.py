@@ -435,10 +435,13 @@ class TemporalLanguageModel:
         year_dict = defaultdict(list)
         metric_dict = defaultdict(list)
 
+        print(len(sentences))
         for idx in range(len(sentences)):
-            sentence = sentences[i]
-            tags = tags_list[i]
-            decade = (actual_years[i] // 10) * 10
+            if idx % 100 == 0:
+                print(idx)
+            sentence = sentences[idx]
+            tags = tags_list[idx]
+            decade = (actual_years[idx] // 10) * 10
 
             years = np.arange(START_YEAR, END_YEAR)
             X_word_array = np.tile(np.expand_dims(sentence, axis=0), [NUM_YEAR, 1])
@@ -596,33 +599,33 @@ def main():
         print("Training!")
         model.train(session, train_data, dev_data, test_data, embed_data)
 
-    print("Testing")
-    model.test(test_data, embed_data)
+   # print("Testing")
+   # model.test(test_data, embed_data)
 
-    print("Learning Curve")
-    model.learning_curve(LOSS_POINTS_PATH)
+ #   print("Learning Curve")
+#    model.learning_curve(LOSS_POINTS_PATH)
 
-    print("Linear Reduction")
-    model.linear_reduction()
+  #  print("Linear Reduction")
+  #  model.linear_reduction()
 
-    print("Clustering")
-    model.clustering()
+   # print("Clustering")
+   # model.clustering()
 
-    print("Sample Sentence")
+    #print("Sample Sentence")
     
     #Sample random 15 sentences from test data
-    NUM_SENT = 750000
-    words = read_lex()
-    sample_indices = np.random.uniform(low=0, high=int(0.15*NUM_SENT)-1, size=15).astype(np.int32)
+   # NUM_SENT = 750000
+   # words = read_lex()
+   # sample_indices = np.random.uniform(low=0, high=int(0.15*NUM_SENT)-1, size=15).astype(np.int32)
    
     #Run sample_sentence code on data from each of 15 sentences from test data
-    for index in sample_indices:
-        print(index)
-        X_word_arr = test_data.X_word[index, :]
-        Y_arr = test_data.Y_label[index, :]
-        X_year = test_data.X_year[index]
-        model.sample_sentence(X_word_arr, Y_arr, X_year, embed_data, words)
-
+  #  for index in sample_indices:
+  #      print(index)
+  #      X_word_arr = test_data.X_word[index, :]
+  #      Y_arr = test_data.Y_label[index, :]
+  #      X_year = test_data.X_year[index]
+  #      model.sample_sentence(X_word_arr, Y_arr, X_year, embed_data, words)
+    model.average_perplexity(test_data.X_word, test_data.Y_label, test_data.X_year, embed_data)
 
 if __name__ == "__main__":
     main()
