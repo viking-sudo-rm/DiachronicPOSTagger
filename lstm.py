@@ -1,5 +1,6 @@
 from __future__ import division
 from __future__ import print_function
+from collections import defaultdict
 
 import tensorflow as tf
 import numpy as np
@@ -422,6 +423,54 @@ class TemporalLanguageModel:
         #Show plot
         plt.show()
 
+    def average_perplexity(self, sentences, tags_list, actual_years, embed_data):
+        sess = tf.Session()
+        saver = tf.train.Saver()
+        saver.restore(sess, MODEL_PATH)
+
+        lowess_year_sum = 0.
+        lowess_year_count = 0.
+
+
+        year_dict = defaultdict(list)
+        metric_dict = defaultdict(list)
+
+        for idx in range(len(sentences)):
+            sentence = sentences[i]
+            tags = tags_list[i]
+            decade = (actual_years[i] // 10) * 10
+
+            years = np.arange(START_YEAR, END_YEAR)
+            X_word_array = np.tile(np.expand_dims(sentence, axis=0), [NUM_YEAR, 1])
+            Y_array = np.tile(np.expand_dims(tags, axis=0), [NUM_YEAR, 1])
+
+            metric = sess.run(self.perp, feed_dict={
+                self.X_word: X_word_array,
+                self.X_year: years,
+                self.Y_label: Y_array,
+                self.embedding_matrix: embed_data
+            })
+
+            year_dict[decade].extend(list(years))
+            metric_dict[decade].extend(list(metric))
+
+        for decade in year_dict.keys():
+            metric_list = metric_dict[decade]
+            year_list = year_dict[decade]
+            lowess = sm.nonparametric.lowess(metric_list, year_list, frac=.3)
+            lowess_year = list(zip(*lowess))[0]
+            lowess_metric = list(zip(*lowess))[1]
+
+            #Plot Perplexity vs. Years
+            plt.scatter(years, metric)
+            plt.plot(lowess_year, lowess_metric, c="r")
+            plt.xlabel("Years")
+            plt.ylabel("Perplexity")
+            plt.title(str(decade) + "s")
+        
+        #Show plot
+        plt.show()
+
 def read_lex():
 
     #Open Lexicon
@@ -496,6 +545,8 @@ def cut_dataset(data_path):
     train_data.save(TRAIN_SAVE_PATH)
     dev_data.save(DEV_SAVE_PATH)
     test_data.save(TEST_SAVE_PATH)
+
+
 
 def main():
 
