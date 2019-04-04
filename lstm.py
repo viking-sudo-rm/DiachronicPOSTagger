@@ -151,7 +151,7 @@ class TemporalLanguageModel:
         self.year_embed_mat = tf.get_variable(name="year_embed_mat", shape=(NUM_YEAR, EMBED_DIM), initializer=tf.contrib.layers.xavier_initializer())
 
         if noyear:
-            embedded_year = tf.zeros(tf.shape(year_embed_mat)
+            embedded_year = tf.zeros(tf.shape(year_embed_mat)[1])
         else:
             embedded_year = tf.nn.embedding_lookup(self.year_embed_mat, unembedded_year)
 
@@ -210,7 +210,11 @@ class TemporalLanguageModel:
         new_years = tf.subtract(self.X_year, START_YEAR)
         unembedded_year = tf.tile(tf.expand_dims(new_years, axis=1), [1, MAX_LEN])
         self.year_embed_mat = tf.get_variable(name="year_embed_mat", shape=(NUM_YEAR, EMBED_DIM), initializer=tf.contrib.layers.xavier_initializer())
-        embedded_year = tf.nn.embedding_lookup(self.year_embed_mat, unembedded_year)
+       
+        if noyear:
+            embedded_year = tf.zeros(tf.shape(year_embed_mat)[1])
+        else:
+            embedded_year = tf.nn.embedding_lookup(self.year_embed_mat, unembedded_year)
 
         #Concatenate X_word and year embedding layer to get one input
         X = tf.concat([X_word, embedded_year], axis=2)
