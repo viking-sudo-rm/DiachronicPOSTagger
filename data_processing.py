@@ -3,7 +3,7 @@ import tensorflow as tf
 import os
 import pickle as pk
 from gensim.models import KeyedVectors 
-import dircache
+#import dircache
 import re
 
 import sklearn as sk
@@ -170,11 +170,11 @@ if __name__ == '__main__':
 		for file in dirnames:
 			num = 0
 			file_path = os.path.join(CORPUS_PATH, file)
-			num_caches = len(dircache.listdir(file_path))
+			num_caches = len(os.listdir(file_path))
 			if num_caches>300:
-				filenames_chosen = np.random.choice(dircache.listdir(file_path), 300)
+				filenames_chosen = np.random.choice(os.listdir(file_path), 300)
 			else:
-				filenames_chosen = dircache.listdir(file_path)
+				filenames_chosen = os.listdir(file_path)
 			for filename in filenames_chosen:
 				print(num)
 				num += 1
@@ -215,4 +215,3 @@ if __name__ == '__main__':
 	#Save version of embedding matrix with only embeddings for 600,000 most common words
 	with open(os.path.join(SAVE_PATH, "EMBED_MAT_FINAL_TRIMMED_R.npz"), "wb") as fh:
 		np.save(fh, embed_mod)
-

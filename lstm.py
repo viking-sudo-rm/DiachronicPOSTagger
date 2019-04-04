@@ -1,4 +1,5 @@
 from __future__ import division
+from __future__ import print_function
 
 import tensorflow as tf
 import numpy as np
@@ -51,7 +52,7 @@ MAX_THRESHOLD = 600000
 
 #Function that will both print output to the terminal and write it to a file
 def log(content, input_data):
-    print input_data 
+    print(input_data)
     content.write(input_data)
 
 
@@ -188,6 +189,60 @@ class TemporalLanguageModel:
         #Set train_step that uses AdamOptimizer to minimize loss
         self.train_step = tf.train.AdamOptimizer(LR).minimize(self.loss)
 
+        #Create Graph Object
+    def add_graph_FF(self):
+
+        #Create placeholders for LSTM
+        self.X_word = tf.placeholder(tf.int32, [None, MAX_LEN])
+        self.X_year = tf.placeholder(tf.int32, [None])
+        self.Y_label = tf.placeholder(tf.int32, [None, MAX_LEN])
+        self.embedding_matrix = tf.placeholder(tf.float32, [MAX_THRESHOLD, EMBED_DIM])
+
+        #Look up embeddings for each word
+        X_word = tf.nn.embedding_lookup(self.embedding_matrix, self.X_word)
+
+        #Create Year Embedding Layer
+        new_years = tf.subtract(self.X_year, START_YEAR)
+        unembedded_year = tf.tile(tf.expand_dims(new_years, axis=1), [1, MAX_LEN])
+        self.year_embed_mat = tf.get_variable(name="year_embed_mat", shape=(NUM_YEAR, EMBED_DIM), initializer=tf.contrib.layers.xavier_initializer())
+        embedded_year = tf.nn.embedding_lookup(self.year_embed_mat, unembedded_year)
+
+        #Concatenate X_word and year embedding layer to get one input
+        X = tf.concat([X_word, embedded_year], axis=2)
+
+        #Implement Feed-Foward
+        H  = tf.layers.dense(
+            inputs = X,
+            units = LAYERS[0],
+            activation = tf.nn.sigmoid
+        )
+
+        #All POS
+        self.Y = tf.contrib.layers.fully_connected(
+            inputs=H,
+            num_outputs=N_POS,
+        )
+        
+        #Calculate Accuracy
+        equal = tf.equal(tf.cast(tf.argmax(self.Y, axis=2), tf.int32), tf.cast(self.Y_label, tf.int32))
+        self.acc = tf.reduce_mean(tf.cast(equal, tf.float32))
+        self.vec_acc = tf.reduce_mean(tf.cast(equal, tf.float32), axis=1)
+
+        #Calculate Log Perplexity
+        mask = tf.cast(tf.one_hot(self.Y_label, N_POS), tf.float32)
+        p = tf.reduce_sum(tf.nn.softmax(self.Y) * mask, axis=2)
+        self.log_perp = -tf.reduce_sum(tf.log(p), axis=1)/MAX_LEN
+        self.perp = tf.exp(self.log_perp)
+
+        #Calculate Loss
+        self.loss = tf.losses.sparse_softmax_cross_entropy(
+            labels=self.Y_label,
+            logits=self.Y,
+        )
+
+        #Set train_step that uses AdamOptimizer to minimize loss
+        self.train_step = tf.train.AdamOptimizer(LR).minimize(self.loss)
+
 
     #Function to train model
     def train(self, session, train_data, dev_data, test_data, embed_data):
@@ -236,6 +291,8 @@ class TemporalLanguageModel:
         #Save model
         saver.save(session, MODEL_PATH)
 
+
+
     #Method to produce clustering plot
     def clustering(self):
         #Restore Model
@@ -281,7 +338,7 @@ class TemporalLanguageModel:
 
         #Calculate R squared
         correlation = np.corrcoef(range(1810, 2010), lin_vals)[0,1]
-        print correlation, correlation**2
+        print(correlation, correlation**2)
 
         #Show plot
         plt.show()
@@ -348,8 +405,8 @@ class TemporalLanguageModel:
         })
 
         #Print each sentence and year of sentence
-        print sentence
-        print X_year
+        print(sentence)
+        print(X_year)
 
         #Generate Lowess Curve
         lowess = sm.nonparametric.lowess(metric, years, frac=.3)
@@ -450,6 +507,9 @@ def main():
     #Do not train
     parser.add_argument("--notrain", action="store_true")
 
+    # Feed-Forward vs. LSTM
+    parser.add_argument("--feedforward", action="store_true")
+
     args = parser.parse_args()
 
     #Create Train, Dev, and Test Data
@@ -474,7 +534,12 @@ def main():
     model = TemporalLanguageModel()
 
     print("Adding Graph")
-    model.add_graph()
+    if(args.feedforward):
+        print("Feedforward")
+        model.add_graph_FF()
+    else:
+        print("LSTM")
+        model.add_graph()
 
     if not args.notrain:
         print("Training!")
@@ -501,7 +566,7 @@ def main():
    
     #Run sample_sentence code on data from each of 15 sentences from test data
     for index in sample_indices:
-        print index
+        print(index)
         X_word_arr = test_data.X_word[index, :]
         Y_arr = test_data.Y_label[index, :]
         X_year = test_data.X_year[index]
