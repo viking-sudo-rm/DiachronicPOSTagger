@@ -9,6 +9,8 @@ from data_processing import format_word
 from tensorflow.contrib import rnn
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 
@@ -23,6 +25,8 @@ EMBED_DIM = 300
 
 # Number of parts of speech
 N_POS = 424
+
+global MODEL_PATH
 
 #Declare Paths
 DATA_PATH = "/home/accts/gfs22/LING_380/Data/Extracted/"
@@ -150,10 +154,9 @@ class TemporalLanguageModel:
         unembedded_year = tf.tile(tf.expand_dims(new_years, axis=1), [1, MAX_LEN])
         self.year_embed_mat = tf.get_variable(name="year_embed_mat", shape=(NUM_YEAR, EMBED_DIM), initializer=tf.contrib.layers.xavier_initializer())
 
+        embedded_year = tf.nn.embedding_lookup(self.year_embed_mat, unembedded_year)
         if noyear:
-            embedded_year = tf.zeros(tf.shape(year_embed_mat)[1])
-        else:
-            embedded_year = tf.nn.embedding_lookup(self.year_embed_mat, unembedded_year)
+            embedded_year = tf.zeros_like(embedded_year)
 
         #Concatenate X_word and year embedding layer to get one input
         X = tf.concat([X_word, embedded_year], axis=2)
@@ -210,11 +213,10 @@ class TemporalLanguageModel:
         new_years = tf.subtract(self.X_year, START_YEAR)
         unembedded_year = tf.tile(tf.expand_dims(new_years, axis=1), [1, MAX_LEN])
         self.year_embed_mat = tf.get_variable(name="year_embed_mat", shape=(NUM_YEAR, EMBED_DIM), initializer=tf.contrib.layers.xavier_initializer())
-       
+
+        embedded_year = tf.nn.embedding_lookup(self.year_embed_mat, unembedded_year)
         if noyear:
-            embedded_year = tf.zeros(tf.shape(year_embed_mat)[1])
-        else:
-            embedded_year = tf.nn.embedding_lookup(self.year_embed_mat, unembedded_year)
+            embedded_year = tf.zeros_like(embedded_year)
 
         #Concatenate X_word and year embedding layer to get one input
         X = tf.concat([X_word, embedded_year], axis=2)
@@ -487,7 +489,7 @@ class TemporalLanguageModel:
             
             plt.save("/home/accts/gfs22/LING_380/Plots/Year" + model_type + "/" + str(decade) + ".png")
             #Show plot
-            plt.show()
+        #    plt.show()
 
 def read_lex():
 
@@ -567,6 +569,7 @@ def cut_dataset(data_path):
 
 
 def main():
+    global MODEL_PATH
 
     parser = argparse.ArgumentParser(description="Train LSTM POS model.")
 
@@ -629,14 +632,14 @@ def main():
 
     if not noyear:
 
-        print("Average Perplexity")
-        model.average_perplexity(test_data.X_word, test_data.Y_label, test_data.X_year, embed_data, feedforward)
+       print("Average Perplexity")
+       model.average_perplexity(test_data.X_word, test_data.Y_label, test_data.X_year, embed_data, feedforward)
 
-        print("Linear Reduction")
-        model.linear_reduction()
+       #  print("Linear Reduction")
+       #  model.linear_reduction()
 
-        print("Clustering")
-        model.clustering()
+       #  print("Clustering")
+       #  model.clustering()
 
 
 if __name__ == "__main__":
