@@ -462,15 +462,16 @@ class TemporalLanguageModel:
             year_dict[decade].extend(list(years))
             metric_dict[decade].extend(list(metric))
 
+        model_type = "FF" if feedforward else "LSTM"
         try:
-            model_type = "FF" if feedforward else "LSTM"
             pickle_path = "/home/accts/gfs22/LING_380/Plots/Year" + model_type + "/"
-            with open(pickle_path, "wb") as fh:
-                import pickle
-                pickle.dump(year_dict, pickle_path + "year_dict.pkl")
-                pickle.dump(metric_dict, pickle_path + "metric_dict.pkl")
-        except:
-            pass
+            import pickle
+            with open(pickle_path + "year_dict.pkl", "wb") as year_file:
+                pickle.dump(year_dict, year_file)
+            with open(pickle_path + "metric_dict.pkl", "wb") as metric_file:
+                pickle.dump(metric_dict, metric_file)
+        except Exception as e:
+            print(e)
 
         for decade in year_dict.keys():
             metric_list = metric_dict[decade]
@@ -480,14 +481,15 @@ class TemporalLanguageModel:
             lowess_metric = list(zip(*lowess))[1]
 
             #Plot Perplexity vs. Years
-            plt.scatter(year_list, metric_list)
+#            plt.scatter(year_list, metric_list)
+            plt.figure()
             plt.plot(lowess_year, lowess_metric, c="r")
             plt.xlabel("Years")
             plt.ylabel("Perplexity")
             plt.title(str(decade) + "s")
         
             
-            plt.save("/home/accts/gfs22/LING_380/Plots/Year" + model_type + "/" + str(decade) + ".png")
+            plt.savefig("/home/accts/gfs22/LING_380/Plots/Year" + model_type + "/" + str(decade) + ".png")
             #Show plot
         #    plt.show()
 
