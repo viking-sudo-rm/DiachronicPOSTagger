@@ -1,17 +1,19 @@
-# Analyzing Syntactic Change in American English Using a Time-Parameterized LSTM POS Tagger
+# Detecting Syntactic Change Using a Neural Part-of-Speech Tagger
 
-We train a diachronic long short-term memory (LSTM) part-of-speech tagger on a large corpus of American English from the 19th, 20th, and 21st centuries. In addition to evaluating the overall performance of the model, we analyze whether the embeddings are able to learn the temporal structure between years, and the extent to which the model can be used to predict the year of composition of a novel sentence. Our network achieves a validation accuracy of 93.5%. In addition, analysis of the learned year embeddings revealed a strong linear correlation between the principal component of the year embeddings and time. 
+Code for our paper, which will appear at the 1st LChange workshop at ACL 2019.
+Here is our abstract:
+
+We train a diachronic long short-term memory (LSTM) part-of-speech tagger on a large corpus of American English from the 19th, 20th, and 21st centuries. We analyze the tagger's ability to implicitly learn temporal structure between years, and the extent to which this knowledge can be transferred to date new sentences. The learned year embeddings show a strong linear correlation between their first principal component and time. We show that temporal information encoded in the model can be used to predict novel sentences' years of composition relatively well. Comparisons to a feedforward baseline suggest that the temporal change learned by the LSTM is syntactic rather than purely lexical. Thus, our results suggest that our tagger is implicitly learning to model syntactic change in American English over the course of the 19th, 20th, and early 21st centuries. 
 
 ## Dependencies
 
 Our implementation uses the following Python dependencies:
-1) numpy
-2) tensorflow
-3) gensim
-4) dircache
-5) sklearn
-6) matplotlib
-7) statsmodels
+* numpy
+* tensorflow
+* gensim
+* sklearn
+* matplotlib
+* statsmodels
 
 All of these libraries can be installed with pip.
 
@@ -42,10 +44,8 @@ In addition, once you have a trained model, you can rerun the evaluation code wi
 ```
 python lstm.py --notrain
 ```
- 
-## Authors
 
-Gigi Stark and Will Merrill
+Additional `argparse` options can be found in the file.
 
 ## License
 
