@@ -1,6 +1,6 @@
 # Detecting Syntactic Change Using a Neural Part-of-Speech Tagger
 
-Code for our paper, which will appear at the 1st LChange workshop at ACL 2019.
+Code for our paper, which will appear at the 1st International Workshop on Computational Approaches to Historical Language Change  workshop at ACL 2019.
 
 ## Abstract
 
@@ -11,12 +11,19 @@ Code for our paper, which will appear at the 1st LChange workshop at ACL 2019.
 ## Dependencies
 
 Our implementation uses the following Python dependencies:
-* numpy
-* tensorflow
+* argparse
+* collections
 * gensim
+* numpy
+* os
+* pickle
+* random
+* re
 * sklearn
 * matplotlib
 * statsmodels
+* sys
+* tensorflow
 
 All of these libraries can be installed with pip.
 
@@ -24,9 +31,11 @@ All of these libraries can be installed with pip.
 
 Please contact the authors for data.
 
-Once you have the raw data downloaded, the data processing file data_processing.py must be run first. Please specify `EMBED_PATH` (the location of the word embeddings not including the names of the embedding file), `CORPUS PATH` (the location of the text files not including the name of any text file), `SAVE_PATH` (the location you would like to save the output embedding matrix, `X_word_array`, `X_year_array`, and `Y_array`), and `LEX_PATH` (the location of the lexicon file including the lexicon file name).
+Once you have the raw data downloaded, the data processing file data_processing.py must be run first. Please specify `EMBED_PATH` (the location of the word embeddings -- do not include the name of the embedding file), `CORPUS PATH` (the location of the text files -- do not include the name of any text file), `SAVE_PATH` (the location you would like to save the output embedding matrix, `X_word_array`, `X_year_array`, and `Y_array`), and `LEX_PATH` (the location of the lexicon file -- include the lexicon filename).
 
-The actual code to train and evaluate the LSTM (lstm.py) must be run second. We must specify the `DATA_PATH` (the location of the processed `X_word_array`, `X_year_array`, and `Y_year_array` not including the names of any array), `EMBED_PATH` (the location of the embedding matrix including the name of the embedding matrix), `TRAIN_SAVE_PATH`/`DEV_SAVE_PATH`/`TEST_SAVE_PATH` (the location to save the train, dev and test data respectively), `WRITE_TO_PATH` (the location to which the output of the train function will be written), and `X_WORD_FILENAME`/`X_YEAR_FILENAME`/`Y_FILENAME` (the filenames of the processed `X_word_array`, `X_year_array`, and `Y_array`).
+The actual code to train and evaluate the LSTM (lstm.py) must be run second. We must specify the `DATA_PATH` (the location of the processed `X_word_array`, `X_year_array`, and `Y_year_array` -- do not include any of the array filenames), `LEX_PATH` (the location of the lexicon file including the lexicon filename), `TRAIN_SAVE_PATH`/`TEST_SAVE_PATH` (the location to save the train and test data, respectively), `MODEL_PATH` (the location to save all model information), and `PLOTS_PATH` (the location to save all plots).
+
+`EMBED_PATH` (the location of the embedding matrix including the name of the embedding matrix file), `TRAIN_SAVE_PATH`/`DEV_SAVE_PATH`/`TEST_SAVE_PATH` (the location to save the train, dev and test data respectively), `WRITE_TO_PATH` (the location to which the output of the train function will be written), and `X_WORD_FILENAME`/`X_YEAR_FILENAME`/`Y_FILENAME` (the filenames of the processed `X_word_array`, `X_year_array`, and `Y_array`).
 
 After the data has been downloaded and is located correctly, the data processing file can be run from the terminal using the command:
 
