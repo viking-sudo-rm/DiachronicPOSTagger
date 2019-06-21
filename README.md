@@ -1,6 +1,6 @@
 # Detecting Syntactic Change Using a Neural Part-of-Speech Tagger
 
-Code for our paper, which will appear at the 1st International Workshop on Computational Approaches to Historical Language Change  workshop at ACL 2019.
+Code for our paper, which will appear at the 1st International Workshop on Computational Approaches to Historical Language Change at ACL 2019.
 
 ## Abstract
 
@@ -31,11 +31,7 @@ All of these libraries can be installed with pip.
 
 Please contact the authors for data.
 
-Once you have the raw data downloaded, the data processing file data_processing.py must be run first. Please specify `EMBED_PATH` (the location of the word embeddings -- do not include the name of the embedding file), `CORPUS PATH` (the location of the text files -- do not include the name of any text file), `SAVE_PATH` (the location you would like to save the output embedding matrix, `X_word_array`, `X_year_array`, and `Y_array`), and `LEX_PATH` (the location of the lexicon file -- include the lexicon filename).
-
-The actual code to train and evaluate the LSTM (lstm.py) must be run second. We must specify the `DATA_PATH` (the location of the processed `X_word_array`, `X_year_array`, and `Y_year_array` -- do not include any of the array filenames), `LEX_PATH` (the location of the lexicon file including the lexicon filename), `TRAIN_SAVE_PATH`/`TEST_SAVE_PATH` (the location to save the train and test data, respectively), `MODEL_PATH` (the location to save all model information), and `PLOTS_PATH` (the location to save all plots).
-
-`EMBED_PATH` (the location of the embedding matrix including the name of the embedding matrix file), `TRAIN_SAVE_PATH`/`DEV_SAVE_PATH`/`TEST_SAVE_PATH` (the location to save the train, dev and test data respectively), `WRITE_TO_PATH` (the location to which the output of the train function will be written), and `X_WORD_FILENAME`/`X_YEAR_FILENAME`/`Y_FILENAME` (the filenames of the processed `X_word_array`, `X_year_array`, and `Y_array`).
+Once you have the raw data downloaded, data_processing.py, the data processing file, must be run first. Please specify `EMBED_PATH` (the location of the word embeddings -- do not include the name of the embedding file), `CORPUS PATH` (the location of the text files -- do not include the name of any text file), `SAVE_PATH` (the location where you would like to save the output embedding matrix, `X_word_array`, `X_year_array`, and `Y_array`), and `LEX_PATH` (the location of the lexicon file -- include the lexicon filename).
 
 After the data has been downloaded and is located correctly, the data processing file can be run from the terminal using the command:
 
@@ -43,13 +39,15 @@ After the data has been downloaded and is located correctly, the data processing
 python dataprocessing.py
 ```
 
+The actual code to train and evaluate the LSTM (lstm.py) must be run second. We must specify `DATA_PATH` (the location of the processed embedding matrix, `X_word_array`, `X_year_array`, and `Y_year_array` -- do not include any of the filenames), `LEX_PATH` (the location of the lexicon file -- include the lexicon filename), `TRAIN_SAVE_PATH`/`TEST_SAVE_PATH` (the location where you would like to save the train and test data, respectively), `MODEL_PATH` (the location where you would like to save all model information), and `PLOTS_PATH` (the location where you would like to save all plots).
+
 After the data is processed, you can train an LSTM model and test it using:
 
 ```
 python lstm.py --cut
 ```
 
-The `--cut` flag specifies that you want to create a test, train, and dev set. Once you have run the command with this flag once, you can leave it out in the future to use the same dataset.
+The `--cut` flag specifies that you want to create train and test data sets. Once you have run the command with this flag once, you can leave it out in the future to use previously generated train and test data sets.
 
 In addition, once you have a trained model, you can rerun the evaluation code without retraining by running:
 
@@ -57,7 +55,7 @@ In addition, once you have a trained model, you can rerun the evaluation code wi
 python lstm.py --notrain
 ```
 
-Additional `argparse` options can be found in the file.
+Additional `argparse` options can be found in the LSTM.py file.
 
 ## License
 
