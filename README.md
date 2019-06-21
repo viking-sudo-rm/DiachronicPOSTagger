@@ -1,6 +1,6 @@
 # Detecting Syntactic Change Using a Neural Part-of-Speech Tagger
 
-Code for our paper, which will appear at the 1st International Workshop on Computational Approaches to Historical Language Change at ACL 2019.
+Code for [Detecting Syntactic Change Using a Neural Part-of-Speech Tagger](https://arxiv.org/abs/1906.01661), which will appear at the 1st International Workshop on Computational Approaches to Historical Language Change at ACL 2019.
 
 ## Abstract
 
@@ -60,5 +60,4 @@ Additional `argparse` options can be found in the LSTM.py file.
 ## License
 
 We obtained the rights to use the Corpus of Historical American English (COHA) through our affiliation with Yale University. Thank you Kevin Merriman for helping us get access to this corpus!
-
 
