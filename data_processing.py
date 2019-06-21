@@ -48,38 +48,38 @@ NUM_SENT_TOTAL = 0
 
 def load_embeddings():
 	"""
-    return:
-        model: a matrix of floats, word2vec GoogleNews embeddings
-        
-    Loads and returns word2vec embeddings
-    """
+    	return:
+        	model: a matrix of floats, word2vec GoogleNews embeddings
+    	Loads and returns word2vec embeddings
+    	"""
 	embeddings = KeyedVectors.load_word2vec_format(EMBED_PATH, binary=True)
 	return embeddings
 
 def format_word(word):
 	"""
 	parameters:
-        word: a string, a word in the corpus
-    return:
-        modified_word: a string, modified version of "word" that is lower case and does not include dashes 
-        
-    Returns input "word" with dashes removed and in lower case.
-    """
+        	word: a string, a word in the corpus
+    	return:
+        	modified_word: a string, modified version of "word" that is lower case and does not include dashes 
+    	Returns input "word" with dashes removed and in lower case.
+    	"""
 	dashes = r"[- ]*"
 	modified_word = re.sub(dashes, "", word.lower())
 	return modified_word
 
 def read_lex(embeddings):
 	"""
-    parameters:
-        embeddings: a matrix of floats, word2vec GoogleNews embeddings
-    return:
-    	le: a label encoder, the label encoder for POS tags
-    	POS_tags: a list of strings, the list of all POS tags
-    	word_dict: a dictionary with string keys and integer values, maps word strings (keys) to actual embeddings through embedding IDs (values)
-    	embed_mat: a matrix of integers, a matrix of the word embeddings where each row corresponds to a unique word
-    Uses lexicon to initialize a label encoder for POS, a list of POS tags, a dictionary that maps words to their embeddings, and a matrix of all embeddings. 
-    """
+    	parameters:
+        	embeddings: a matrix of floats, word2vec GoogleNews embeddings
+   	return:
+    		le: a label encoder, the label encoder for POS tags
+    		POS_tags: a list of strings, the list of all POS tags
+    		word_dict: a dictionary with string keys and integer values, maps word strings (keys) to actual embeddings through 
+		embedding IDs (values)
+    		embed_mat: a matrix of integers, a matrix of the word embeddings where each row corresponds to a unique word
+    	Uses lexicon to initialize a label encoder for POS, a list of POS tags, a dictionary that maps words to their embeddings, 
+	and a matrix of all embeddings. 
+    	"""
 	# Opens lexicon
 	with open(LEX_PATH) as fh:
 		lines = fh.readlines()
@@ -117,21 +117,24 @@ def read_lex(embeddings):
 
 def read_single_file(file_name, le, POS_tags, word_dict):
 	"""
-    parameters:
-        file_name: a string, the name of the file under examination 
-        le: a label encoder, the label encoder for POS tags
-    	POS_tags: a list of strings, the list of all POS tags
-    	word_dict: a dictionary with string keys and integer values, maps word strings (keys) to actual embeddings through embedding ids (values)
-    return:
-		X_word_array: a matrix of integers, each row corresponds to a list of the indices of the embeddings of each word in a sentence in the 
-		document
-		X_year_array: a list of integers, repeats the year of composition for each word in the sentence for each sentence in the document
-		Y_array: a matrix of integers, each row corresponds to a list of the label encoded POS tags of each word in a sentence in the document
-        
-    For a given document generates matrix corresponding to indices for word embeddings (X_word), list corresponding to year of composition of each
-    sentence (X_year_array), and matrix of label encoded POS tags of each word in a sentence in the document (Y_array).
-    """
-    # Variable corresponding to number of sentences that contain more than 50 words
+    	parameters:
+        	file_name: a string, the name of the file under examination 
+        	le: a label encoder, the label encoder for POS tags
+    		POS_tags: a list of strings, the list of all POS tags
+    		word_dict: a dictionary with string keys and integer values, maps word strings (keys) to actual embeddings through 
+		embedding ids (values)
+    	return:
+		X_word_array: a matrix of integers, each row corresponds to a list of the indices of the embeddings of each word 
+		in a sentence in the document
+		X_year_array: a list of integers, repeats the year of composition for each word in the sentence for each sentence 
+		in the document
+		Y_array: a matrix of integers, each row corresponds to a list of the label encoded POS tags of each word in a 
+		sentence in the document
+    	For a given document generates matrix corresponding to indices for word embeddings (X_word), list corresponding to year 
+	of composition of each sentence (X_year_array), and matrix of label encoded POS tags of each word in a sentence in the 
+	document (Y_array).
+   	"""
+    	# Variable corresponding to number of sentences that contain more than 50 words
 	global NUM_SENT_EXCEED_MAX_LEN
 
 	global NUM_SENT_TOTAL
@@ -215,19 +218,21 @@ format_POS = lambda pos: pos.split("_")[0]
 def read_all_files(le, POS_tags, word_dict):
 	"""
 	parameters:
-        le: a label encoder, the label encoder for POS tags
-    	POS_tags: a list of strings, the list of all POS tags
-    	word_dict: a dictionary with string keys and integer values, maps word strings (keys) to actual embeddings through embedding IDs (values)
-    return:
-		X_word_array: a matrix of integers, each row corresponds to a list of the indices of the embeddings of each word in a sentence; there is a row 
+        	le: a label encoder, the label encoder for POS tags
+    		POS_tags: a list of strings, the list of all POS tags
+    		word_dict: a dictionary with string keys and integer values, maps word strings (keys) to actual embeddings through
+		embedding IDs (values)
+    	return:
+		X_word_array: a matrix of integers, each row corresponds to a list of the indices of the embeddings of each word 
+		in a sentence; there is a row for each of the 1,000,000 final sentences
+		X_year_array: a list of integers, each entry corresponds to the year of composition of a sentence; there is an entry
 		for each of the 1,000,000 final sentences
-		X_year_array: a list of integers, each entry corresponds to the year of composition of a sentence; there is an entry for each of the 1,000,000 
-		final sentences
-		Y_array: a matrix of integers, each row corresponds to a list of the label encoded POS tags of each word in a sentence; there is a row 
-		for each of the 1,000,000 final sentences
-    From all documents selects 1,000,000 sentences. Generates matrix corresponding to indices for word embeddings (X_word), list corresponding to year of 
-    composition of each sentence (X_year_array), and matrix of label encoded POS tags (Y_array) for each word for each of these sentences.
-    """
+		Y_array: a matrix of integers, each row corresponds to a list of the label encoded POS tags of each word in a sentence; 
+		there is a row for each of the 1,000,000 final sentences
+    	From all documents selects 1,000,000 sentences. Generates matrix corresponding to indices for word embeddings (X_word), list 
+	corresponding to year of composition of each sentence (X_year_array), and matrix of label encoded POS tags (Y_array) for each 
+	word for each of these sentences.
+    	"""
 	# Variable corresponding to number of sentences that contain more than 50 words
 	global NUM_SENT_EXCEED_MAX_LEN
 
@@ -299,17 +304,18 @@ def read_all_files(le, POS_tags, word_dict):
 def limit_vocabulary(X_word_array, embed_mat):
 	"""
 	parameters:
-        X_word_array: a matrix of integers, each row corresponds to a list of the indices of the embeddings of each word in a sentence; there is a row 
-		for each of the 1,000,000 final sentences
+        	X_word_array: a matrix of integers, each row corresponds to a list of the indices of the embeddings of each word 
+		in a sentence; there is a row for each of the 1,000,000 final sentences
 		embed_mat: a matrix of integers, a matrix of the word embeddings where each row corresponds to a unique word
 	return:
-        X_word_array: a matrix of integers, each row corresponds to a list of the indices of the embeddings of each word in a sentence; there is a row 
-		for each of the 1,000,000 final sentences; only stores indices for 600,000 most common words.
-		embed_mat: a matrix of integers, a matrix of the word embeddings where each row corresponds to a unique word; only stores embeddings for 600,000 
-		most common words.
-    Ensures the "X_word_array" only stores indices for the 600,000 most common words and "embed_mat" only has embeddings for the 600,000
-    most common words.
-    """
+        	X_word_array: a matrix of integers, each row corresponds to a list of the indices of the embeddings of each word
+		in a sentence; there is a row for each of the 1,000,000 final sentences; only stores indices for 600,000 most common 
+		words.
+		embed_mat: a matrix of integers, a matrix of the word embeddings where each row corresponds to a unique word; only 
+		stores embeddings for 600,000 most common words.
+    	Ensures the "X_word_array" only stores indices for the 600,000 most common words and "embed_mat" only has embeddings for the
+	600,000 most common words.
+    	"""
 	# Only stores indices in X_word for embeddings of 600,000 most common words
 	indices = np.where(X_word_array>NUM_COMMON_WORDS)
 	X_word_array[indices]=0
@@ -332,7 +338,7 @@ if __name__ == '__main__':
 	print("Load Lexicon")
 	sys.stdout.flush()
 
-	# Creates a set with all the POS tags
+	# Creates a set of all the POS tags
 	POS_tags = set(POS_tags)
 
 	# Generates X_word_array, X_year_array, and Y_array
