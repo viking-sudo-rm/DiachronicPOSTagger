@@ -89,7 +89,6 @@ class Dataset:
             path: a string, the path where processed X_word, X_year, and Y data is stored
         return: 
             data: a Dataset object, contains loaded X_word, X_year, and Y data
-
         Loads X_word, X_year, and Y data and returns it as a Dataset object.
         """
         X_word_path = os.path.join(path, X_WORD_FILENAME)
@@ -100,7 +99,7 @@ class Dataset:
         X_year_array = np.load(X_year_path)
         Y_array = np.load(Y_path)
 
-        # Combine X_word_array, X_year_array, and Y_array to make a Dataset object
+        # Combines X_word_array, X_year_array, and Y_array to make a Dataset object
         data =  Dataset(
             X_word_array,
             X_year_array,
@@ -159,8 +158,8 @@ class TemporalLanguageModel:
         parameters:
             noyear: a boolean, indicates whether year information is included as input to the model
             feedforward: a boolean, indicates whether the model is a feedforward neural network or an LSTM
-        Creates a graph for the model. Generates placeholders for X_word, X_year, Y_label, and the embedding matrix. Creates year embedding. Details model 
-        architecture. Calculates accuracy, log perplexity, and loss. Optimizes network based on loss.
+        Creates a graph for the model. Generates placeholders for X_word, X_year, Y_label, and the embedding matrix. Creates
+        year embedding. Details model architecture. Calculates accuracy, log perplexity, and loss. Optimizes network based on loss.
         """
         # Creates placeholders for LSTM
         self.X_word = tf.placeholder(tf.int32, [None, MAX_SENT_LENGTH])
@@ -228,7 +227,6 @@ class TemporalLanguageModel:
         # Sets train_step that uses AdamOptimizer to minimize loss
         self.train_step = tf.train.AdamOptimizer(LR).minimize(self.loss)
 
-   
     def train(self, session, train_data, embed_data):
         """
         parameters:
@@ -254,7 +252,7 @@ class TemporalLanguageModel:
 
         content=open(model_output, "a")
 
-        #Loops through epochs
+        # Loops through epochs
         for i in xrange(N_EPOCHS):
             print("PRE-SHUFFLED Train Data")
             print(str(i))
@@ -263,7 +261,7 @@ class TemporalLanguageModel:
             sys.stdout.flush()
             loss = 0.
 
-            #Loops through Batches
+            # Loops through Batches
             for j, batch_X_word, batch_X_year, batch_Y_label in train_data.iter_batches():
 
                 # Completes backpropagation 
@@ -288,8 +286,8 @@ class TemporalLanguageModel:
     def calculate_acc(self, corpus_data, embed_data, train):
         """
         parameters:
-            corpus_data: a Dataset object, includes X_word, X_year, and Y_label data for the portion of 
-            the data set on which accuracy is being evaluated
+            corpus_data: a Dataset object, includes X_word, X_year, and Y_label data for the portion of the data set on which 
+            accuracy is being evaluated
             embed_data: a matrix of integers, a matrix of the word embeddings where each row corresponds to a unique word
             train: a boolean, indicates whether train or test accuracy is being calculated
         Evaluates the POS tagging accuracy of the model on "corpus_data".
@@ -330,13 +328,13 @@ class TemporalLanguageModel:
             print('Test acc: {}'.format(test_acc))
             sys.stdout.flush()
 
-
     def linear_reduction(self, feedforward):
         """
         parameters:
             feedforward: a boolean, indicates whether the model is a feedforward neural network or an LSTM 
-        Performs principle component analysis on the year embeddings. Calculates the correlation between the first principle component of the year embedding 
-        and the sequence of data set years (1810 to 2009). Plots the first principle component of the year embeddings against the sequence of data set years. 
+        Performs principle component analysis on the year embeddings. Calculates the correlation between the first principle 
+        component of the year embedding and the sequence of data set years (1810 to 2009). Plots the first principle component
+        of the year embeddings against the sequence of data set years. 
         """
         model_type = "FF" if feedforward else "LSTM"
 
@@ -366,7 +364,6 @@ class TemporalLanguageModel:
         # Saves figure
         plt.savefig(PLOTS_PATH + "Year" + model_type + "/PCA.png")
 
-
     def average_perplexity(self, test_data, embed_data, feedforward, loadperplex, yearbucket):
         """
         parameters:
@@ -376,10 +373,11 @@ class TemporalLanguageModel:
             loadperplex: a boolean, indicates whether to load previously calculated perplexity values of
             each sentence at each year or to calculate these values
             yearbucket: a boolean, indicates whether to load use decades or individual years to aggregate
-        For each test data set sentence, calculates the perplexity of the sentence at all years in the data set. Divides the data set into buckets by 
-        either year or decade. For each bucket, fits a LOWESS curve where perplexity is a function of year. For all sentences in a bucket, the predicted 
-        year of composition is the year corresponding to the minimum of the corresponding perplexity curve. The evaluation metric for each type of model is
-        the average distance across buckets between this predicted year and the bucket's actual middle year. 
+        For each test data set sentence, calculates the perplexity of the sentence at all years in the data set. Divides the data set 
+        into buckets by either year or decade. For each bucket, fits a LOWESS curve where perplexity is a function of year. For all 
+        sentences in a bucket, the predicted year of composition is the year corresponding to the minimum of the corresponding 
+        perplexity curve. The evaluation metric for each type of model is the average distance across buckets between this 
+        predicted year and the bucket's actual middle year. 
         """
         # Verifies model type
         model_type = "FF" if feedforward else "LSTM"
@@ -442,7 +440,6 @@ class TemporalLanguageModel:
                 # Stores perplexity of sentence at every year 1810 through 2009 in "metric_dict" at appropriate bucket key
                 metric_dict[bucket].extend(list(metric))
 
-
             try:
                 with open(pickle_path + "year_dict" + bucket_type + ".pkl", "wb") as year_file:
                     pickle.dump(year_dict, year_file)
@@ -451,15 +448,12 @@ class TemporalLanguageModel:
             except Exception as e:
                 print(e)
 
-
         # If loadperplex boolean is true then loads already calculated perplexity values and corresponding years
         else:
             with open(pickle_path + "year_dict" + bucket_type + ".pkl", "rb") as year_file:
                 year_dict = pickle.load(year_file)
             with open(pickle_path + "metric_dict" + bucket_type + ".pkl", "rb") as metric_file:
                 metric_dict = pickle.load(metric_file)
-
-
 
         # Evaluates model performance on temporal prediction
         dist_from_actual_year = []
@@ -468,7 +462,7 @@ class TemporalLanguageModel:
         # For each bucket, calculates the absolute distance between the middle year of the bucket and the minimum of the 
         # corresponding LOWESS curve 
         for bucket in year_dict.keys():
-
+            
             # Fits LOWESS curve to all data from bucket
             metric_list = metric_dict[bucket]
             year_list = year_dict[bucket]
@@ -509,21 +503,24 @@ class TemporalLanguageModel:
     def perplexity_sample_sentence(self, X_word_array, actual_year, Y_array, embed_data, word_dict):
         """
         parameters:
-            X_word_array: a matrix of integers, each row is identical and corresponds to the indices of the embeddings of each word in the given sentence.
-            There are 200 identical rows as having a row for each data set year aids perplexity calculations.
+            X_word_array: a matrix of integers, each row is identical and corresponds to the indices of the embeddings of
+            each word in the given sentence. There are 200 identical rows as having a row for each data set year aids perplexity 
+            calculations.
             actual_year: an integer, the year of composition of the given sentence
-            Y_array: a matrix of integers, each row is identical and corresponds to the label encoded POS tags of each word in the given sentence.
-            There are 200 identical rows as having a row for each data set year aids perplexity calculations.
+            Y_array: a matrix of integers, each row is identical and corresponds to the label encoded POS tags of each word in the 
+            given sentence. There are 200 identical rows as having a row for each data set year aids perplexity calculations.
             embed_data: a matrix of integers, a matrix of the word embeddings where each row corresponds to a unique word
-            word_dict: a dictionary with string keys and integer values, maps word strings (keys) to actual embeddings through embedding IDs (values)
+            word_dict: a dictionary with string keys and integer values, maps word strings (keys) to actual embeddings through 
+            embedding IDs (values)
         return:
             dist_year: an integer, the distance between the given sentence's predicted and actual years of composition
             predicted_year: an integer, the predicted year of composition of the given sentence
             actual_year: an integer, the actual year of composition of the given sentence
             sentence: a string, the sequence of words in the given sentence
-        For a single sentence, calculates the perplexity of the sentence at all years in the data set (1810 to 2009). Takes the predicted year
-        of composition for the sentence to be the year with the minimum perplexity. Returns the sentence's words, actual year of composition, 
-        predicted year of composition, and the difference between its actual and predicted years of composition. 
+        For a single sentence, calculates the perplexity of the sentence at all years in the data set (1810 to 2009). Takes the
+        predicted year of composition for the sentence to be the year with the minimum perplexity. Returns the sentence's words,
+        actual year of composition, predicted year of composition, and the difference between its actual and predicted years
+        of composition. 
         """
         # Restores model
         sess = tf.Session()
@@ -539,7 +536,6 @@ class TemporalLanguageModel:
 
         sentence = " ".join(sentence)
 
-
         # Calculates perplexity for input sentence across all years
         years = np.arange(START_YEAR, END_YEAR)
         X_word_array = np.tile(np.expand_dims(X_word_array, axis=0), [NUM_YEAR, 1])
@@ -552,7 +548,7 @@ class TemporalLanguageModel:
             self.embedding_matrix: embed_data
         })
 
-        # Calculate predicted_year of composition and error (distance between predicted and actual year of composition)
+        # Calculates predicted_year of composition and error (distance between predicted and actual year of composition)
         predicted_year = years[np.argmin(metric)]
         dist_year = np.abs(predicted_year - actual_year)
         return dist_year, predicted_year, actual_year, sentence
@@ -573,8 +569,7 @@ class TemporalLanguageModel:
         """
         # Generates a dictionary that maps word strings to embedding IDs
         word_dict = generate_word_dict()
-
-
+        
         X_word_array = test_data.X_word
         actual_years = test_data.X_year
         Y_array = test_data.Y_label
@@ -585,7 +580,6 @@ class TemporalLanguageModel:
         actual_year_l = []
         sent_l = []
         indices_l = []
-
 
         # Loops through NUM_SAMPLE_SENT sample sentences
         for idx in range(NUM_SAMPLE_SENT):
@@ -624,8 +618,9 @@ class TemporalLanguageModel:
             actual_year_sorted: a list of integers, the actual years of composition of each sentence (ordered by increasing error)
             sentence_sorted: a list of strings, the sentences (ordered by increasing error)
             indices_sorted: a list of integers, the test data set indices of the sentences (ordered by increasing error)
-        Prints the sentence string, LSTM error (distance between predicted and actual year of composition), predicted year of composition, actual year of
-        composition, and feedforward error for the 10 sentences of those sampled that have the smallest LSTM errors.
+        Prints the sentence string, LSTM error (distance between predicted and actual year of composition), predicted year of 
+        composition, actual year of composition, and feedforward error for the 10 sentences of those sampled that have the 
+        smallest LSTM errors.
         """
         # Generates a dictionary that maps word strings to embedding IDs
         word_dict = generate_word_dict()
@@ -660,13 +655,11 @@ class TemporalLanguageModel:
             sys.stdout.flush()
             print(" ")
 
-
-
 def generate_word_dict():
     """
     return:
-        word_dict: a dictionary with string keys and integer values, maps word strings (keys) to actual embeddings through embedding IDs (values)
-
+        word_dict: a dictionary with string keys and integer values, maps word strings (keys) to actual embeddings through 
+        embedding IDs (values)
     Uses lexicon to create "word_dict", a dictionary that maps string words to embedding IDs.
     """
     # Opens Lexicon
@@ -690,9 +683,8 @@ def generate_word_dict():
 
 def cut_dataset():
     """
-    Divides data into train and test portions and save these parts of the data set separately.
+    Divides data into train and test portions and saves these parts of the data set separately.
     """
-
     # Loads Data
     data = Dataset.load(DATA_PATH)
 
@@ -725,7 +717,6 @@ def cut_dataset():
 
     # Saves train and test data
     train_data.save(TRAIN_SAVE_PATH)
-
     test_data.save(TEST_SAVE_PATH)
 
 def main():
@@ -733,19 +724,19 @@ def main():
 
     parser = argparse.ArgumentParser(description="Train LSTM POS model.")
 
-    # Cuts the data set into train and test parts 
+    # Determines whether to cut the data set into train and test parts 
     parser.add_argument("--cut", action="store_true")
 
-    # Do no train a new model
+    # Determines whether to train a new model or not
     parser.add_argument("--notrain", action="store_true")
 
-    # Implements feedforward vs. LSTM model
+    # Determines whether to implement feedforward vs. LSTM model
     parser.add_argument("--feedforward", action="store_true")
 
-    # Includes year information as input 
+    # Determines whether to include year information as input or not
     parser.add_argument("--noyear", action="store_true")
 
-    # Loads previously calculated perplexity data 
+    # Determines whether to load previously calculated perplexity data or to calculate these numbers
     parser.add_argument("--loadperplex", action="store_true")
 
     args = parser.parse_args()
@@ -776,7 +767,7 @@ def main():
     # Creates a session
     session = tf.Session()
 
-    # Declares a model and correctly modifies MODEL_PATH
+    # Declares a model (either feedforward or LSTM) and modifies MODEL_PATH
     model = TemporalLanguageModel()
 
     noyear = args.noyear
@@ -835,7 +826,8 @@ def main():
         print("Sample Sentences")
         sys.stdout.flush()
 
-        # Samples 1000 sentences and obtains their predicted year, actual year, sentence, and error (distance between predicted and actual year) lists
+        # Samples 1000 sentences and obtains their predicted year, actual year, sentence, and error (distance between predicted 
+        # and actual year) lists
         print("Find Sample Sentences")
         dist_year_sorted, predicted_year_sorted, actual_year_sorted, sentence_sorted, indices_sorted = model.find_sample_sentences(test_data, embed_data)
         
